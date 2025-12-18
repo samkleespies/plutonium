@@ -8,14 +8,11 @@
 
 --- a/chrome/browser/ui/views/status_bubble_views.cc
 +++ b/chrome/browser/ui/views/status_bubble_views.cc
-@@ -796,6 +796,10 @@ void StatusBubbleViews::SetStatus(const std::u16string& status_text) {
- }
- 
+@@ -821,6 +821,9 @@
  void StatusBubbleViews::SetURL(const GURL& url) {
 +  // Plutonium: Disable status bubble completely
 +  // This provides a cleaner UI and better performance
 +  return;
-+
-   if (size_.IsEmpty())
-     return;
- 
+   url_ = url;
+   if (size_.IsEmpty()) {
+     return;  // We have no bounds, don't attempt to show the popup.
