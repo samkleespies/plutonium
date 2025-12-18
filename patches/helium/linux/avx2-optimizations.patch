@@ -13,10 +13,10 @@
 
 --- a/build/config/compiler/BUILD.gn
 +++ b/build/config/compiler/BUILD.gn
-@@ -127,6 +127,26 @@ declare_args() {
- 
-   # Enable WASM JSPI support.
-   wasm_enable_jspi = is_chromeos
+@@ -49,4 +49,24 @@
+ declare_args() {
+   # This allows overriding the location of lld.
+   lld_path = default_lld_path
 +
 +  # Plutonium: SIMD instruction set targeting
 +  # These flags enable specific CPU instruction sets for better performance.
@@ -37,6 +37,3 @@
 +  # AVX2 - Available on Intel Haswell (2013+), AMD Excavator (2015+), AMD Zen (2017+)
 +  use_avx2 = false
  }
- 
- declare_args() {
-+  # Enable libusb.
