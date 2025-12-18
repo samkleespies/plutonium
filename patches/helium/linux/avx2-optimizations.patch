@@ -13,29 +13,13 @@
 
 --- a/build/config/compiler/BUILD.gn
 +++ b/build/config/compiler/BUILD.gn
-@@ -49,6 +49,25 @@
+@@ -49,3 +49,9 @@
  declare_args() {
    # This allows overriding the location of lld.
    lld_path = default_lld_path
-+
-+  # Plutonium: SIMD instruction set targeting
-+  # These flags enable specific CPU instruction sets for better performance.
-+  # WARNING: Setting these too high will make binaries incompatible with older CPUs.
-+  
-+  # SSE3 - Available on virtually all x86-64 CPUs (2005+)
++  # SIMD flags
 +  use_sse3 = true
-+  
-+  # SSE4.1 - Available on Intel Penryn (2008+), AMD Bulldozer (2011+)
 +  use_sse41 = true
-+  
-+  # SSE4.2 - Available on Intel Nehalem (2008+), AMD Bulldozer (2011+)
 +  use_sse42 = true
-+  
-+  # AVX - Available on Intel Sandy Bridge (2011+), AMD Bulldozer (2011+)
 +  use_avx = false
-+  
-+  # AVX2 - Available on Intel Haswell (2013+), AMD Excavator (2015+), AMD Zen (2017+)
 +  use_avx2 = false
- }
- 
- declare_args() {
