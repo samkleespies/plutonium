@@ -73,10 +73,13 @@ chrome_pgo_phase=0
 # =============================================================================
 # V8 JavaScript Engine Optimizations - AFFECTS SCROLLING & RESPONSIVENESS
 # =============================================================================
+# Enable Sparkplug (baseline JIT compiler, fast compilation, decent perf)
+v8_enable_sparkplug=true
+
 # Enable Maglev (mid-tier JIT compiler, faster than Sparkplug, lighter than TurboFan)
 v8_enable_maglev=true
 
-# Enable TurboFan (optimizing JIT compiler)
+# Enable TurboFan (optimizing JIT compiler for hot code)
 v8_enable_turbofan=true
 
 # Enable PGO for V8 builtins (significant JS performance improvement)
@@ -88,8 +91,17 @@ v8_enable_fast_torque=true
 # Enable context snapshots for faster startup
 use_v8_context_snapshot=true
 
-# WebAssembly SIMD optimizations
+# =============================================================================
+# WebAssembly Optimizations
+# =============================================================================
+# Enable WebAssembly support
+v8_enable_webassembly=true
+
+# WebAssembly SIMD optimizations (256-bit vector operations)
 v8_enable_wasm_simd256_revec=true
+
+# Cache compiled WebAssembly code for faster subsequent loads
+v8_enable_wasm_code_cache=true
 
 # =============================================================================
 # RENDERING & UI OPTIMIZATIONS

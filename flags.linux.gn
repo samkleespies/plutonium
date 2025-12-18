@@ -1,7 +1,11 @@
-# Helium Browser - Optimized Linux Build Configuration
+# Helium Browser - Maximum Performance Linux Build Configuration
 # 
-# This file should be used instead of the default flags.linux.gn
-# Copy this to your helium-linux repo as flags.linux.gn
+# This configuration targets maximum runtime performance.
+# Build times will be longer, but the resulting browser will be faster.
+#
+# CPU COMPATIBILITY:
+#   - Default config: Works on all x86-64 CPUs (2011+)
+#   - With use_avx2=true: Requires Haswell (2013+) or AMD Zen (2017+)
 
 # =============================================================================
 # LINUX PLATFORM SETTINGS
@@ -10,9 +14,6 @@ is_clang=true
 is_debug=false
 use_sysroot=true
 
-# Use Chromium's bundled toolchain (recommended for consistency)
-# The build scripts handle this automatically
-
 # =============================================================================
 # MEDIA & CODECS
 # =============================================================================
@@ -20,13 +21,13 @@ use_sysroot=true
 ffmpeg_branding="Chrome"
 proprietary_codecs=true
 
-# Hardware video acceleration (VA-API)
+# Hardware video acceleration (VA-API) - essential for video performance
 use_vaapi=true
 
 # =============================================================================
 # LINUX-SPECIFIC FEATURES
 # =============================================================================
-# PipeWire for WebRTC screen sharing
+# PipeWire for WebRTC screen sharing (lower latency than PulseAudio)
 rtc_use_pipewire=true
 
 # Disable Kerberos (not typically needed for desktop)
@@ -36,27 +37,53 @@ use_kerberos=false
 use_system_libffi=false
 
 # =============================================================================
-# LINKER SETTINGS
+# LINKER SETTINGS & OPTIMIZATIONS
 # =============================================================================
 # Don't fail on linker warnings (some warnings are expected)
 fatal_linker_warnings=false
 
+# Use LLVM's lld linker (faster linking, better LTO support)
+use_lld=true
+
+# Identical Code Folding - merges identical functions (smaller binary)
+use_icf=true
+
 # =============================================================================
-# PERFORMANCE OPTIMIZATIONS (Linux-specific)
+# PERFORMANCE OPTIMIZATIONS
 # =============================================================================
-# Text section splitting for better cache locality
+# Text section splitting for better instruction cache locality
 use_text_section_splitting=true
 
-# Enable CFI (Control Flow Integrity) - requires ThinLTO
-# Provides security with minimal performance impact
+# Control Flow Integrity - security with minimal performance cost
+# Requires ThinLTO to be enabled
 is_cfi=true
 
-# =============================================================================
-# OPTIONAL: Additional Performance Tuning
-# =============================================================================
-# Use system allocator instead of PartitionAlloc (not recommended, but
-# can help if you have issues with memory-heavy workloads)
-# use_allocator="none"
+# Disable precompiled headers - slower build but potentially better codegen
+enable_precompiled_headers=false
 
-# Enable more aggressive inlining during LTO
-# This is set via LLVM flags in the build environment if needed
+# =============================================================================
+# CPU TARGETING - SIMD OPTIMIZATIONS
+# =============================================================================
+# These flags enable SIMD instructions for better performance.
+# The more advanced flags require newer CPUs.
+
+# SSE3/SSSE3/SSE4.1/SSE4.2 - Available on all modern x86-64 CPUs (2011+)
+use_sse3=true
+use_sse41=true
+use_sse42=true
+
+# AVX - Available on Sandy Bridge (2011+) and newer
+# Enables 256-bit floating-point SIMD operations
+use_avx=true
+
+# AVX2 - Available on Haswell (2013+), AMD Excavator (2015+), AMD Zen (2017+)
+# Enables 256-bit integer SIMD operations - significant performance boost
+# UNCOMMENT THE LINE BELOW if your target CPU supports AVX2:
+# use_avx2=true
+
+# =============================================================================
+# THORIUM-STYLE COMPILER OPTIMIZATIONS
+# =============================================================================
+# These are enabled via patches (see patches/helium/linux/)
+# - compiler-optimizations.patch: -O3, LLVM loop opts, import_instr_limit=100
+# - avx2-optimizations.patch: AVX2/FMA targeting when use_avx2=true

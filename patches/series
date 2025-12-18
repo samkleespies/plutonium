@@ -4,6 +4,10 @@ ungoogled-chromium/portablelinux/fix-compiling-on-arm64.patch
 
 upstream-fixes/respect-middle-click-paste.patch
 
+# Performance optimizations (must be applied early, before other compiler changes)
+helium/linux/avx2-optimizations.patch
+helium/linux/compiler-optimizations.patch
+
 helium/linux/change-chromium-branding.patch
 helium/linux/use-default-theme.patch
 helium/linux/fix-swipe-between-pages.patch
