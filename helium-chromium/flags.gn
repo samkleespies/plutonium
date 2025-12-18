@@ -1,0 +1,114 @@
+# Helium Browser - Optimized Build Configuration
+# Based on Chrome/Thorium performance optimizations
+# 
+# This config prioritizes performance while maintaining privacy
+
+# =============================================================================
+# PRIVACY & UNGOOGLED SETTINGS (preserved from original)
+# =============================================================================
+build_with_tflite_lib=false
+clang_use_chrome_plugins=false
+disable_fieldtrial_testing_config=true
+enable_hangout_services_extension=false
+enable_mdns=false
+enable_remoting=false
+enable_reporting=false
+enable_service_discovery=false
+enable_widevine=true
+google_api_key=""
+google_default_client_id=""
+google_default_client_secret=""
+safe_browsing_mode=0
+treat_warnings_as_errors=false
+use_official_google_api_keys=false
+use_unofficial_version_number=false
+
+# =============================================================================
+# CORE BUILD OPTIMIZATIONS
+# =============================================================================
+# Official build mode enables multiple optimizations
+is_official_build=true
+is_debug=false
+
+# Strip symbols for smaller, faster binary
+symbol_level=0
+blink_symbol_level=0
+v8_symbol_level=0
+
+# Remove debug assertions
+dcheck_always_on=false
+
+# Remove unwind tables (smaller binary, slightly faster)
+exclude_unwind_tables=true
+
+# Enable binary stripping
+enable_stripping=true
+
+# =============================================================================
+# LTO (Link-Time Optimization) - CRITICAL FOR PERFORMANCE
+# =============================================================================
+# ThinLTO provides significant performance gains with reasonable build times
+use_thin_lto=true
+
+# THIS IS THE KEY FLAG - enables aggressive LTO optimizations (-Wl,--lto-O2)
+thin_lto_enable_optimizations=true
+
+# Disable LTO cache for deterministic builds (can enable for faster rebuilds)
+# thin_lto_enable_cache=true
+
+# =============================================================================
+# PGO (Profile-Guided Optimization) - BIGGEST PERFORMANCE IMPACT
+# =============================================================================
+# Set to 2 for optimized builds using profile data
+# Set to 1 for instrumentation builds (to generate profile data)
+# Set to 0 to disable (NOT RECOMMENDED)
+#
+# Note: When chrome_pgo_phase=2, you need either:
+# 1. Chromium's bundled profiles (downloaded via clone.py -p linux)
+# 2. Your own profile.profdata file
+#
+# The build script handles this when you use: ./scripts/build.sh -c --pgo
+chrome_pgo_phase=0
+
+# =============================================================================
+# V8 JavaScript Engine Optimizations - AFFECTS SCROLLING & RESPONSIVENESS
+# =============================================================================
+# Enable Maglev (mid-tier JIT compiler, faster than Sparkplug, lighter than TurboFan)
+v8_enable_maglev=true
+
+# Enable TurboFan (optimizing JIT compiler)
+v8_enable_turbofan=true
+
+# Enable PGO for V8 builtins (significant JS performance improvement)
+v8_enable_builtins_optimization=true
+
+# Faster Torque-generated code
+v8_enable_fast_torque=true
+
+# Enable context snapshots for faster startup
+use_v8_context_snapshot=true
+
+# WebAssembly SIMD optimizations
+v8_enable_wasm_simd256_revec=true
+
+# =============================================================================
+# RENDERING & UI OPTIMIZATIONS
+# =============================================================================
+# Optimize WebUI resources (chrome:// pages)
+optimize_webui=true
+
+# =============================================================================
+# SECURITY OPTIONS (optional, may add slight overhead)
+# =============================================================================
+# Control Flow Integrity - adds security with minimal performance cost
+# Requires ThinLTO to be enabled
+# is_cfi=true
+
+# Initialize stack variables to zero (security, minimal overhead)
+# init_stack_vars_zero=true
+
+# =============================================================================
+# ADDITIONAL PERFORMANCE FLAGS
+# =============================================================================
+# Text section splitting improves instruction cache locality (Linux only)
+# use_text_section_splitting=true

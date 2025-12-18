@@ -1,0 +1,62 @@
+# Helium Browser - Optimized Linux Build Configuration
+# 
+# This file should be used instead of the default flags.linux.gn
+# Copy this to your helium-linux repo as flags.linux.gn
+
+# =============================================================================
+# LINUX PLATFORM SETTINGS
+# =============================================================================
+is_clang=true
+is_debug=false
+use_sysroot=true
+
+# Use Chromium's bundled toolchain (recommended for consistency)
+# The build scripts handle this automatically
+
+# =============================================================================
+# MEDIA & CODECS
+# =============================================================================
+# Enable Chrome-branded FFmpeg with all codecs (H.264, AAC, etc.)
+ffmpeg_branding="Chrome"
+proprietary_codecs=true
+
+# Hardware video acceleration (VA-API)
+use_vaapi=true
+
+# =============================================================================
+# LINUX-SPECIFIC FEATURES
+# =============================================================================
+# PipeWire for WebRTC screen sharing
+rtc_use_pipewire=true
+
+# Disable Kerberos (not typically needed for desktop)
+use_kerberos=false
+
+# Use bundled libffi
+use_system_libffi=false
+
+# =============================================================================
+# LINKER SETTINGS
+# =============================================================================
+# Don't fail on linker warnings (some warnings are expected)
+fatal_linker_warnings=false
+
+# =============================================================================
+# PERFORMANCE OPTIMIZATIONS (Linux-specific)
+# =============================================================================
+# Text section splitting for better cache locality
+use_text_section_splitting=true
+
+# Enable CFI (Control Flow Integrity) - requires ThinLTO
+# Provides security with minimal performance impact
+is_cfi=true
+
+# =============================================================================
+# OPTIONAL: Additional Performance Tuning
+# =============================================================================
+# Use system allocator instead of PartitionAlloc (not recommended, but
+# can help if you have issues with memory-heavy workloads)
+# use_allocator="none"
+
+# Enable more aggressive inlining during LTO
+# This is set via LLVM flags in the build environment if needed
