@@ -1,0 +1,124 @@
+# Consolidated Plutonium optimizations (Chromium 143.0.7499.146)
+#
+# This patch combines several performance-focused optimizations:
+# 1. SIMD instruction set support (SSE3, SSE4.1, SSE4.2, AVX, AVX2)
+# 2. Aggressive LLVM optimizations (-aggressive-ext-opt, -enable-gvn-hoist)
+# 3. Maximum optimization levels (-O3) for official builds
+# 4. Enhanced ThinLTO inlining (import_instr_limit=100)
+#
+# Inspired by Thorium and Helium.
+
+--- a/build/config/compiler/BUILD.gn
++++ b/build/config/compiler/BUILD.gn
+@@ -49,4 +49,10 @@
+ declare_args() {
+   # This allows overriding the location of lld.
+   lld_path = default_lld_path
++  # SIMD flags
++  use_sse3 = true
++  use_sse41 = true
++  use_sse42 = true
++  use_avx = false
++  use_avx2 = false
+ }
+@@ -319,6 +325,16 @@ config("compiler") {
+   configs = []
+ 
++  # Plutonium: Aggressive LLVM optimizations for official builds
++  if (is_official_build && !is_debug && is_clang) {
++    cflags += [
++      "-mllvm",
++      "-aggressive-ext-opt",
++      "-mllvm",
++      "-enable-gvn-hoist",
++    ]
++  }
++
+   # In general, Windows is totally different, but all the other builds share
+   # some common compiler and linker configuration.
+   if (!is_win) {
+@@ -2166,12 +2182,17 @@ config("optimize") {
+ }
+ 
+ config("optimize_max") {
+-  if (is_nacl && is_nacl_irt) {
+-    # The NaCl IRT is a special case and always wants its own config.
+-    # Various components do:
+-    #   if (!is_debug) {
+-    #     configs -= [ "//build/config/compiler:default_optimization" ]
+-    #     configs += [ "//build/config/compiler:optimize_max" ]
++  # Plutonium: Use -O3 for official builds (Thorium-style)
++  if (is_official_build && !is_debug) {
++    if (is_win) {
++      cflags = [ "/O2" ]  # MSVC doesn't have -O3
++    } else {
++      cflags = [ "-O3" ]
++    }
++  } else if (is_nacl && is_nacl_irt) {
++    # The NaCl IRT is a special case and always wants its own config.
++    # Various components do:
++    #   if (!is_debug) {
++    #     configs -= [ "//build/config/compiler:default_optimization" ]
++    #     configs += [ "//build/config/compiler:optimize_max" ]
++    #   }
++    # and ABI compatibility requires that ABI-affecting flags (like Clang's
++    # `-mstack-alignment`) don't vary between the IRT and user code. So add
+@@ -2195,6 +2216,18 @@ config("optimize_max") {
+ # Favor size over speed, /O1 enables /Os.
+ config("optimize_size") {
+   if (is_nacl && is_nacl_irt) {
++    configs = [ "//build/config/nacl:irt_optimize" ]
++  } else if (is_official_build && !is_debug) {
++    # Plutonium: Still use -O3 for official builds even in "size" config
++    # The size difference is minimal but performance gains are significant
++    if (is_win) {
++      cflags = [ "/O2" ]
++    } else if (is_clang) {
++      cflags = [ "-O3" ]
++    } else {
++      cflags = [ "-O2" ]
++    }
++  } else if (is_nacl && is_nacl_irt) {
+     configs = [ "//build/config/nacl:irt_optimize" ]
+   } else if (is_win) {
+     cflags = [
+@@ -2310,3 +2343,28 @@
++
++# Plutonium: Additional linker optimizations for ThinLTO
++# - Increases import_instr_limit from 30 to 100 for more aggressive cross-module inlining
++# - Adds linker-level LLVM loop optimizations (Thorium-style)
++config("plutonium_lto_optimizations") {
++  if (use_thin_lto && is_official_build && !is_debug) {
++    if (is_win) {
++      ldflags = [
++        "-mllvm:-import-instr-limit=100",
++        "-mllvm:-aggressive-ext-opt",
++        "-mllvm:-enable-gvn-hoist",
++      ]
++    } else {
++      ldflags = [
++        "-Wl,-mllvm,-import-instr-limit=100",
++        "-Wl,-mllvm,-aggressive-ext-opt",
++        "-Wl,-mllvm,-enable-gvn-hoist",
++        "-Wl,-O3",
++      ]
++      # Architecture-specific tuning for AVX2 builds
++      if (defined(use_avx2) && use_avx2) {
++        ldflags += [
++          "-Wl,-mllvm,-march=haswell",
++          "-Wl,-mllvm,-fp-contract=fast",
++        ]
++      }
++    }
++  }
++}
+--- a/build/config/BUILDCONFIG.gn
++++ b/build/config/BUILDCONFIG.gn
+@@ -335,6 +335,7 @@ default_compiler_configs = [
+   "//build/config/compiler:thin_lto_optimizations",
+   "//build/config/compiler:compiler_arm_fpu",
+   "//build/config/compiler:compiler_arm_thumb",
++  "//build/config/compiler:plutonium_lto_optimizations",
+   "//build/config/coverage:default_coverage",
+   "//build/config/sanitizers:default_sanitizer_flags",
+ ]

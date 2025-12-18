@@ -5,8 +5,7 @@ ungoogled-chromium/portablelinux/fix-compiling-on-arm64.patch
 upstream-fixes/respect-middle-click-paste.patch
 
 # Plutonium: Performance optimizations (must be applied early)
-helium/linux/avx2-optimizations.patch
-helium/linux/compiler-optimizations.patch
+helium/linux/plutonium-optimizations.patch
 helium/linux/scrolling-performance.patch
 
 # Plutonium: UI customizations
