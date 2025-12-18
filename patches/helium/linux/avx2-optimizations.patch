@@ -13,7 +13,11 @@
 
 --- a/build/config/compiler/BUILD.gn
 +++ b/build/config/compiler/BUILD.gn
-@@ -49,3 +49,22 @@
+@@ -45,8 +45,28 @@
+ if (!is_clang) {
+   default_lld_path = "$clang_base_path/bin"
+ }
+ 
  declare_args() {
    # This allows overriding the location of lld.
    lld_path = default_lld_path
@@ -36,3 +40,4 @@
 +  
 +  # AVX2 - Available on Intel Haswell (2013+), AMD Excavator (2015+), AMD Zen (2017+)
 +  use_avx2 = false
+ }
