@@ -39,3 +39,4 @@
  }
  
  declare_args() {
++  # Enable libusb.
