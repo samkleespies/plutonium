@@ -1,4 +1,4 @@
-# AVX/AVX2 CPU targeting optimizations
+# AVX/AVX2 CPU targeting optimizations (Plutonium)
 #
 # This patch adds proper AVX and AVX2 compiler flag support controlled by GN args.
 # When use_avx=true or use_avx2=true is set, the appropriate SIMD instructions
@@ -18,7 +18,7 @@
    # Enable WASM JSPI support.
    wasm_enable_jspi = is_chromeos
 +
-+  # Helium: SIMD instruction set targeting
++  # Plutonium: SIMD instruction set targeting
 +  # These flags enable specific CPU instruction sets for better performance.
 +  # WARNING: Setting these too high will make binaries incompatible with older CPUs.
 +  
@@ -43,7 +43,7 @@
      }
    }
  
-+  # Helium: SIMD instruction set targeting
++  # Plutonium: SIMD instruction set targeting
 +  if (current_cpu == "x64" || current_cpu == "x86") {
 +    if (use_sse3) {
 +      cflags += [ "-msse3" ]
@@ -101,6 +101,6 @@
 +    }
 +  }
 +
-   # Helium: Thorium-style optimizations for official builds
+   # Plutonium: Thorium-style optimizations for official builds
    if (is_official_build && !is_debug && is_clang) {
      cflags += [

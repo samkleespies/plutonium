@@ -1,6 +1,6 @@
-# Helium Mega-Optimized Build
+# Plutonium - Maximum Performance Build
 
-This is a pre-configured build environment for Helium browser with all performance optimizations enabled, including Thorium-style compiler optimizations and support for custom PGO profiles.
+This is a pre-configured build environment for Plutonium browser with all performance optimizations enabled, including Thorium-style compiler optimizations and support for custom PGO profiles.
 
 ## Performance Tiers
 

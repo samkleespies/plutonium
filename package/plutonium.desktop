@@ -1,13 +1,13 @@
 [Desktop Entry]
 Version=1.0
-Name=Helium
+Name=Plutonium
 GenericName=Web Browser
 Comment=Access the Internet
 Exec=chromium %U
 StartupNotify=true
-StartupWMClass=helium
+StartupWMClass=plutonium
 Terminal=false
-Icon=helium
+Icon=plutonium
 Type=Application
 Categories=Network;WebBrowser;
 MimeType=application/pdf;application/rdf+xml;application/rss+xml;application/xhtml+xml;application/xhtml_xml;application/xml;image/gif;image/jpeg;image/png;image/webp;text/html;text/xml;x-scheme-handler/http;x-scheme-handler/https;

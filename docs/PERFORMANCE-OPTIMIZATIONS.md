@@ -1,10 +1,10 @@
-# Helium Browser Performance Optimizations
+# Plutonium Browser Performance Optimizations
 
-This document explains the performance optimization architecture for Helium browser builds. It is intended for developers and AI agents working on this codebase.
+This document explains the performance optimization architecture for Plutonium browser builds. It is intended for developers and AI agents working on this codebase.
 
 ## Overview
 
-This repository builds Helium browser (a Chromium fork) with Thorium-style performance optimizations. The goal is to achieve performance parity with Chrome Dev (~98-100%) while maintaining privacy features.
+This repository builds Plutonium browser (a Chromium fork) with Thorium-style performance optimizations. The goal is to achieve performance parity with Chrome Dev (~98-100%) while maintaining privacy features.
 
 ## Architecture
 

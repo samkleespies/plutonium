@@ -1,4 +1,4 @@
-# Helium Browser - Maximum Performance Linux Build Configuration
+# Plutonium Browser - Maximum Performance Linux Build Configuration
 # 
 # This configuration targets maximum runtime performance.
 # Build times will be longer, but the resulting browser will be faster.
@@ -87,3 +87,6 @@ use_avx=true
 # These are enabled via patches (see patches/helium/linux/)
 # - compiler-optimizations.patch: -O3, LLVM loop opts, import_instr_limit=100
 # - avx2-optimizations.patch: AVX2/FMA targeting when use_avx2=true
+# - scrolling-performance.patch: GPU rasterization, zero-copy, raster threads
+# - disable-status-bubble.patch: Removes URL preview bubble
+# - chrome-default-colors.patch: Chrome's original gray color scheme

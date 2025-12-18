@@ -1,0 +1,21 @@
+# Plutonium: Disable URL status bubble
+#
+# This patch completely disables the URL status bubble that appears when
+# hovering over links. This provides a cleaner UI and slightly better
+# performance by avoiding unnecessary rendering.
+#
+# The status bubble is disabled by returning early in SetURL().
+
+--- a/chrome/browser/ui/views/status_bubble_views.cc
++++ b/chrome/browser/ui/views/status_bubble_views.cc
+@@ -796,6 +796,10 @@ void StatusBubbleViews::SetStatus(const std::u16string& status_text) {
+ }
+ 
+ void StatusBubbleViews::SetURL(const GURL& url) {
++  // Plutonium: Disable status bubble completely
++  // This provides a cleaner UI and better performance
++  return;
++
+   if (size_.IsEmpty())
+     return;
+ 
