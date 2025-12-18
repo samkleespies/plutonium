@@ -17,7 +17,10 @@ plutonium/
 │   ├── series                  # Patch application order
 │   └── helium/linux/
 │       ├── compiler-optimizations.patch  # -O3, LLVM opts
-│       └── avx2-optimizations.patch      # CPU SIMD targeting
+│       ├── avx2-optimizations.patch      # CPU SIMD targeting
+│       ├── scrolling-performance.patch   # GPU raster, smooth scroll
+│       ├── disable-status-bubble.patch   # Remove URL hover bubble
+│       └── chrome-default-colors.patch   # Chrome gray color scheme
 ├── scripts/
 │   ├── build-optimized.sh      # Main build script with PGO support
 │   └── shared.sh               # Shared build functions
@@ -130,7 +133,54 @@ chrome_pgo_phase=0  # Set to 2 for PGO builds (handled by build script)
 - To change tuning targets (`-mtune=`)
 - To add platform-specific SIMD flags
 
-### 5. `patches/series` - Patch Order
+### 5. `patches/helium/linux/scrolling-performance.patch`
+
+**Purpose**: Adds GN arguments for GPU rasterization and smooth scrolling optimizations.
+
+**What it does**:
+1. Enables GPU rasterization by default
+2. Uses 4 raster threads for parallel compositing
+3. Enables zero-copy GPU memory buffers
+4. Enables top controls compositor animations
+
+**Key GN flags added**:
+```gn
+enable_gpu_rasterization=true
+num_raster_threads=4
+enable_zero_copy=true
+top_controls_show_threshold=0.5
+top_controls_hide_threshold=0.5
+```
+
+**Performance impact**: Noticeably smoother scrolling, reduced scroll jank
+
+### 6. `patches/helium/linux/disable-status-bubble.patch`
+
+**Purpose**: Removes the URL status bubble that appears when hovering over links.
+
+**What it does**:
+- Adds early return in `StatusBubbleViews::SetURL()` to prevent bubble display
+- Browser still functions normally, just no hover URL preview
+
+**When to modify**:
+- If you want to re-enable status bubble (remove the early return)
+- If upstream changes `StatusBubbleViews` API
+
+### 7. `patches/helium/linux/chrome-default-colors.patch`
+
+**Purpose**: Reverts Helium's blue color scheme to Chrome's original gray colors.
+
+**What it does**:
+- Sets frame color to Chrome's gray (`#dee1e6`)
+- Sets active tab background to white
+- Sets toolbar color to light gray
+- Removes blue tint from UI elements
+
+**When to modify**:
+- To customize the color scheme
+- To adjust specific color values
+
+### 9. `patches/series` - Patch Order
 
 **Purpose**: Defines the order patches are applied to Chromium source.
 
@@ -139,13 +189,18 @@ chrome_pgo_phase=0  # Set to 2 for PGO builds (handled by build script)
 # Performance patches (early, before other compiler changes)
 helium/linux/avx2-optimizations.patch
 helium/linux/compiler-optimizations.patch
+helium/linux/scrolling-performance.patch
+
+# UI customizations
+helium/linux/disable-status-bubble.patch
+helium/linux/chrome-default-colors.patch
 
 # Branding and other patches follow...
 ```
 
 **Important**: Performance patches should be applied early to ensure they're not overwritten by other patches modifying `BUILD.gn`.
 
-### 6. `scripts/build-optimized.sh` - Build Script
+### 10. `scripts/build-optimized.sh` - Build Script
 
 **Purpose**: Main build entry point with PGO support.
 
