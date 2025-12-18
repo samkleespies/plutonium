@@ -13,11 +13,7 @@
 
 --- a/build/config/compiler/BUILD.gn
 +++ b/build/config/compiler/BUILD.gn
-@@ -45,8 +45,28 @@
- if (!is_clang) {
-   default_lld_path = "$clang_base_path/bin"
- }
- 
+@@ -49,4 +49,23 @@
  declare_args() {
    # This allows overriding the location of lld.
    lld_path = default_lld_path
