@@ -3,11 +3,13 @@ set -euo pipefail
 
 clone=false
 with_pgo=false
+clean=false
 
 while [ $# -gt 0 ]; do
     case "$1" in
         -c) clone=true; shift;;
         --pgo) with_pgo=true; shift;;
+        --clean) clean=true; shift;;
     esac
 done
 
@@ -15,8 +17,10 @@ done
 
 setup_environment
 
-# clean out/ directory before build
-rm -rf "${_src_dir}/out" || true
+if [ "$clean" = true ]; then
+    # clean out/ directory before build
+    rm -rf "${_src_dir}/out" || true
+fi
 
 fetch_sources "$clone" "$with_pgo"
 apply_patches

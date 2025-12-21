@@ -1,16 +1,16 @@
 #!/bin/sh
-# Copyright 2025 The Helium Authors
+# Copyright 2025 The Plutonium Authors
 # You can use, redistribute, and/or modify this source code under
 # the terms of the GPL-3.0 license that can be found in the LICENSE file.
 
-# This is the script that runs when the Helium AppImage is launched.
+# This is the script that runs when the Plutonium AppImage is launched.
 # It will most likely not do anything useful outside of this.
 THIS="$(readlink -f "${0}")"
 HERE="$(dirname "${THIS}")"
 export LD_LIBRARY_PATH="${HERE}/usr/lib:$LD_LIBRARY_PATH"
 export CHROME_WRAPPER="${APPIMAGE:-$THIS}"
 
-AA_PROFILE_PATH=/etc/apparmor.d/helium-appimage
+AA_PROFILE_PATH=/etc/apparmor.d/plutonium-appimage
 AA_SYSFS_USERNS_PATH=/proc/sys/kernel/apparmor_restrict_unprivileged_userns
 
 has_command() {
@@ -62,15 +62,15 @@ print_apparmor_profile() {
     echo 'abi <abi/4.0>,'
     echo 'include <tunables/global>'
     echo
-    echo 'profile helium-appimage "'"$APPIMAGE_ESC"'" flags=(default_allow) {'
+    echo 'profile plutonium-appimage "'"$APPIMAGE_ESC"'" flags=(default_allow) {'
     echo '  userns,'
-    echo '  include if exists <local/helium-appimage>'
+    echo '  include if exists <local/plutonium-appimage>'
     echo '}'
 }
 
 if needs_apparmor_bootstrap && has_apparmor_prereqs; then
-    echo "Helium has detected that your system uses AppArmor." >&2
-    echo "Before Helium can run, it needs to create an AppArmor profile for itself." >&2
+    echo "Plutonium has detected that your system uses AppArmor." >&2
+    echo "Before Plutonium can run, it needs to create an AppArmor profile for itself." >&2
     echo "It will request to run commands as root. If you do not wish to do this, please exit." >&2
 
     print_apparmor_profile | sudo_shim tee "$AA_PROFILE_PATH" && \
@@ -81,4 +81,4 @@ if needs_apparmor_bootstrap && has_apparmor_prereqs; then
         APPARMOR_BOOTSTRAPPED=1 exec "$APPIMAGE"
 fi
 
-"${HERE}"/opt/helium/chrome "$@"
+"${HERE}"/opt/plutonium/chrome "$@"

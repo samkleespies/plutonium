@@ -12,11 +12,11 @@
 +++ b/chrome/browser/helium_flag_entries.h
 @@ -24,4 +24,8 @@
       "Audio Context fingerprint deception",
-      "Adds small random jitter (±0.01%) to audio data to prevent fingerprinting. Helium flag.",
+      "Adds small random jitter (±0.01%) to audio data to prevent fingerprinting. Plutonium flag.",
       kOsAll, FEATURE_VALUE_TYPE(blink::features::kAudioContextJitter)},
 +    {helium::kMiddleClickAutoscrollCommandLine,
 +     "Middle Click Autoscroll",
-+     "Enables autoscroll on middle click. Helium flag, Chromium feature.",
++     "Enables autoscroll on middle click. Plutonium flag, Chromium feature.",
 +     kOsDesktop, FEATURE_VALUE_TYPE(blink::features::kHeliumMiddleClickAutoscroll)},
  #endif  /* CHROME_BROWSER_HELIUM_FLAG_ENTRIES_H_ */
 --- a/third_party/blink/public/common/features.h

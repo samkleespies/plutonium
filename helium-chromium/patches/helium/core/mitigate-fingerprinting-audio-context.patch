@@ -15,11 +15,11 @@ https://github.com/uazo/cromite/blob/b2824377/build/patches/AudioBuffer-Analyser
 +++ b/chrome/browser/helium_flag_entries.h
 @@ -20,4 +20,8 @@
       "Canvas fingerprint deception",
-      "Enable noising pixels when the contents of a canvas are read back by a script. Bound to a browser session. Helium flag, Chromium feature.",
+      "Enable noising pixels when the contents of a canvas are read back by a script. Bound to a browser session. Plutonium flag, Chromium feature.",
       kOsAll, FEATURE_VALUE_TYPE(fingerprinting_protection_interventions::features::kCanvasNoise)},
 +    {helium::kAudioContextJitterCommandLine,
 +     "Audio Context fingerprint deception",
-+     "Adds small random jitter (±0.01%) to audio data to prevent fingerprinting. Helium flag.",
++     "Adds small random jitter (±0.01%) to audio data to prevent fingerprinting. Plutonium flag.",
 +     kOsAll, FEATURE_VALUE_TYPE(blink::features::kAudioContextJitter)},
  #endif  /* CHROME_BROWSER_HELIUM_FLAG_ENTRIES_H_ */
 --- a/third_party/blink/common/features.cc

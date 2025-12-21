@@ -5,9 +5,9 @@ _current_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 _root_dir="$(cd "$_current_dir/.." && pwd)"
 _build_dir="$_root_dir/build"
 _release_dir="$_build_dir/release"
-_app_dir="$_release_dir/Helium.AppDir"
+_app_dir="$_release_dir/Plutonium.AppDir"
 
-_app_name="helium"
+_app_name="plutonium"
 _version=$(python3 "$_root_dir/helium-chromium/utils/helium_version.py" \
                    --tree "$_root_dir/helium-chromium" \
                    --platform-tree "$_root_dir" \
@@ -24,7 +24,7 @@ if [ "$_arch" = "x64" ]; then
 fi
 
 _release_name="$_app_name-$_version-$_arch"
-_update_info="gh-releases-zsync|imputnet|helium-linux|latest|$_app_name-*-$_arch.AppImage.zsync"
+_update_info="gh-releases-zsync|imputnet|plutonium-linux|latest|$_app_name-*-$_arch.AppImage.zsync"
 _tarball_name="${_release_name}_linux"
 _tarball_dir="$_release_dir/$_tarball_name"
 
@@ -58,7 +58,7 @@ for file in $_files; do
     cp -r "$_build_dir/src/out/Default/$file" "$_tarball_dir" &
 done
 
-cp "$_root_dir/package/helium.desktop" "$_tarball_dir"
+cp "$_root_dir/package/plutonium.desktop" "$_tarball_dir"
 
 wait
 
@@ -72,18 +72,18 @@ tar vcf - "$_tarball_name" \
 
 # create AppImage
 rm -rf "$_app_dir"
-mkdir -p "$_app_dir/opt/helium/" "$_app_dir/usr/share/icons/hicolor/256x256/apps/"
-cp -r "$_tarball_dir"/* "$_app_dir/opt/helium/"
-cp "$_root_dir/package/helium.desktop" "$_app_dir"
-sed -i -e 's|Exec=chromium|Exec=AppRun|g' "$_app_dir/helium.desktop"
+mkdir -p "$_app_dir/opt/plutonium/" "$_app_dir/usr/share/icons/hicolor/256x256/apps/"
+cp -r "$_tarball_dir"/* "$_app_dir/opt/plutonium/"
+cp "$_root_dir/package/plutonium.desktop" "$_app_dir"
+sed -i -e 's|Exec=chromium|Exec=AppRun|g' "$_app_dir/plutonium.desktop"
 
 cp "$_root_dir/package/AppRun.sh" "$_app_dir/AppRun"
 
-for out in "$_app_dir/helium.png" "${_app_dir}/usr/share/icons/hicolor/256x256/apps/helium.png"; do
-    cp "${_app_dir}/opt/helium/product_logo_256.png" "$out"
+for out in "$_app_dir/plutonium.png" "${_app_dir}/usr/share/icons/hicolor/256x256/apps/plutonium.png"; do
+    cp "${_app_dir}/opt/plutonium/product_logo_256.png" "$out"
 done
 
-export APPIMAGETOOL_APP_NAME="Helium"
+export APPIMAGETOOL_APP_NAME="Plutonium"
 export VERSION="$_version"
 
 # check whether CI GPG secrets are available

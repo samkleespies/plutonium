@@ -3,7 +3,7 @@
 # Copyright 2025 The Helium Authors
 # You can use, redistribute, and/or modify this source code under
 # the terms of the GPL-3.0 license that can be found in the LICENSE file.
-"""Script to replace instances of Chrome/Chromium with Helium"""
+"""Script to replace instances of Chrome/Chromium with Plutonium"""
 
 from pathlib import Path
 import argparse
@@ -20,7 +20,8 @@ REPLACEMENT_REGEXES_STR = [
     (r'("BEGIN_LINK_CHROMIUM")(.*?Chromium)(.*?<ph name="END_LINK_CHROMIUM")', r'\1\2_unreplace\3'),
 
     # main replacement(s)
-    (r'(?:Google )?Chrom(e|ium)(?!\w)', r'Helium'),
+    (r'(?:Google )?Chrom(e|ium)(?!\w)', r'Plutonium'),
+    (r'\bHelium\b', r'Plutonium'),
 
     # post-replacement cleanup
     (r'((?:Google )?Chrom(e|ium))_unreplace', r'\1'),
@@ -32,7 +33,7 @@ REPLACEMENT_REGEXES = list(map(lambda line: (re.compile(line[0]), line[1]),
 
 
 def replace(text):
-    """Replaces instances of Chrom(e | ium) with Helium, where desired"""
+    """Replaces instances of Chrom(e | ium) with Plutonium, where desired"""
     for regex, replacement in REPLACEMENT_REGEXES:
         text = re.sub(regex, replacement, text)
     return text
@@ -45,10 +46,11 @@ def replacement_sanity():
         ('Chrome Web Store', 'Chrome Web Store'),
         ('Chromium Web Store', 'Chromium Web Store'),
         ('Chrome Remote Desktop', 'Chrome Remote Desktop'),
-        ('Google Chrome', 'Helium'),
-        ('Chrome Google Chrome Chrome Chromium', 'Helium Helium Helium Helium'),
-        ('Chrome', 'Helium'),
-        ('Chromium', 'Helium'),
+        ('Google Chrome', 'Plutonium'),
+        ('Chrome Google Chrome Chrome Chromium', 'Plutonium Plutonium Plutonium Plutonium'),
+        ('Chrome', 'Plutonium'),
+        ('Chromium', 'Plutonium'),
+        ('Helium', 'Plutonium'),
     ]
 
     for source, expected in before_after:

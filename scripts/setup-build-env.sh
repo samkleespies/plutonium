@@ -12,7 +12,7 @@ print_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 print_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
 print_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
-print_status "Setting up Helium build environment on Ubuntu..."
+print_status "Setting up Plutonium build environment on Ubuntu..."
 
 if [ "$(id -u)" = "0" ]; then
     print_error "Don't run this as root. It will use sudo when needed."

@@ -5,7 +5,7 @@
    constexpr const char kHeliumCatFixedAddressBarCommandLine[] =
        "helium-cat-fixed-address-bar";
 +  constexpr const char kMiddleClickPasteEnabledCommandLine[] =
-+      "helium-middle-click-paste-enabled";
++      "plutonium-middle-click-paste-enabled";
  
  }  // namespace helium
  
@@ -13,11 +13,11 @@
 +++ b/chrome/browser/helium_flag_entries.h
 @@ -36,4 +36,8 @@
       "[CAT] Fixed address bar width",
-      "Prevents the address bar from shrinking in the CAT layout. Will push toolbar actions outside of bounds on small window sizes, beware. Works only when the main CAT flag is enabled. Early and buggy, stuff will break and/or look weird. Helium flag.",
+      "Prevents the address bar from shrinking in the CAT layout. Will push toolbar actions outside of bounds on small window sizes, beware. Works only when the main CAT flag is enabled. Early and buggy, stuff will break and/or look weird. Plutonium flag.",
       kOsDesktop, FEATURE_VALUE_TYPE(features::kHeliumCatFixedAddressBar)},
 +    {helium::kMiddleClickPasteEnabledCommandLine,
 +     "Middle Click Paste",
-+     "Controls middle click paste functionality. Helium flag.",
++     "Controls middle click paste functionality. Plutonium flag.",
 +     kOsLinux, FEATURE_VALUE_TYPE(features::kMiddleClickPasteEnabled)},
  #endif  /* CHROME_BROWSER_HELIUM_FLAG_ENTRIES_H_ */
 --- a/chrome/browser/renderer_preferences_util.cc

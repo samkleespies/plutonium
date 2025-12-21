@@ -1,0 +1,97 @@
+--- a/components/helium_onboarding/index.html
++++ b/components/helium_onboarding/index.html
+@@ -5,7 +5,7 @@
+     <meta charset="UTF-8" />
+     <link rel="icon" type="image/png" href="/favicon.png" />
+     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+-    <title>Helium Setup</title>
++    <title>Plutonium Setup</title>
+ </head>
+ 
+ <body>
+--- a/components/helium_onboarding/src/lib/strings.ts
++++ b/components/helium_onboarding/src/lib/strings.ts
+@@ -7,44 +7,44 @@
+         getStarted: "Get started"
+     },
+     welcome: {
+-        greeting: "Meet Helium",
++        greeting: "Meet Plutonium",
+         body: "Let's configure your browser just the way you want it. If you're in a rush, you can stick to defaults with best privacy and comfort.",
+         terms_note: "By continuing, you agree to the",
+         terms_privacy: "privacy policy",
+         terms_and: "and",
+         terms_use: "terms of use",
+-        defaults: "You can skip setup and come back later, but Helium services won't work until then."
++        defaults: "You can skip setup and come back later, but Plutonium services won't work until then."
+     },
+     finish: {
+-        title: "Welcome to Helium!",
++        title: "Welcome to Plutonium!",
+         body: "The setup is complete, we're really glad you're here.\nLet's get the browsing started!"
+     },
+     services: {
+-        title: "Helium services",
++        title: "Plutonium services",
+         subtitle: "All services are anonymous, private, and self-hostable.\nChanges will be applied after you go to the next page.",
+ 
+-        connection_title: "Allow connecting to Helium services",
+-        connection_desc: "Helium services provide additional functionality, such as: extension downloads, native !bangs, filter list updates, and browser updates. When disabled, none of these features will work, but Helium will not make any web requests.",
++        connection_title: "Allow connecting to Plutonium services",
++        connection_desc: "Plutonium services provide additional functionality, such as: extension downloads, native !bangs, filter list updates, and browser updates. When disabled, none of these features will work, but Plutonium will not make any web requests.",
+ 
+         bangs_title: "Allow downloading the !bangs list",
+-        bangs_desc: "Helium will fetch a list of bangs that help you browse the Internet faster, such as !w or !gh. When disabled, bangs will not work.",
++        bangs_desc: "Plutonium will fetch a list of bangs that help you browse the Internet faster, such as !w or !gh. When disabled, bangs will not work.",
+ 
+         extensions_title: "Proxy extension downloads and updates",
+-        extensions_desc: "When enabled, Helium will proxy extension downloads and updates to protect your privacy. When disabled, downloading and updating extensions will not work.",
++        extensions_desc: "When enabled, Plutonium will proxy extension downloads and updates to protect your privacy. When disabled, downloading and updating extensions will not work.",
+ 
+         ublock_title: "Allow downloading filter lists for uBlock Origin",
+-        ublock_desc: "Helium will fetch fresh filter lists for uBlock Origin. All requests to lists are proxied to protect your privacy. When disabled, default filter lists will be loaded from local storage, which are only updated along with Helium. Optional filter lists will be requested without proxying.",
++        ublock_desc: "Plutonium will fetch fresh filter lists for uBlock Origin. All requests to lists are proxied to protect your privacy. When disabled, default filter lists will be loaded from local storage, which are only updated along with Plutonium. Optional filter lists will be requested without proxying.",
+ 
+         autoupdates_title: "Allow automatic browser and component updates",
+-        autoupdates_desc: "Helium will automatically download and install browser and component updates as they become available. We recommend keeping this setting enabled to ensure you get the latest features and security updates.",
+-        autoupdates_linux: "\n\nAutomatic browser updates are not available on Linux yet, but component updates are. For now, please use external software to keep Helium's AppImage up-to-date. We already provide .zsync files along with releases.",
+-        autoupdates_windows: "\n\nAutomatic browser updates are not available on Windows yet, but component updates are. For now, please use external software or install updates manually to keep Helium up-to-date.",
++        autoupdates_desc: "Plutonium will automatically download and install browser and component updates as they become available. We recommend keeping this setting enabled to ensure you get the latest features and security updates.",
++        autoupdates_linux: "\n\nAutomatic browser updates are not available on Linux yet, but component updates are. For now, please use external software to keep Plutonium's AppImage up-to-date. We already provide .zsync files along with releases.",
++        autoupdates_windows: "\n\nAutomatic browser updates are not available on Windows yet, but component updates are. For now, please use external software or install updates manually to keep Plutonium up-to-date.",
+ 
+         spellcheck_title: "Allow downloading dictionary files for spell checking",
+-        spellcheck_desc: "Helium will fetch dictionary files used for spell checking when requested. When disabled, spell checking will not work.",
++        spellcheck_desc: "Plutonium will fetch dictionary files used for spell checking when requested. When disabled, spell checking will not work.",
+ 
+-        instance_title: "Use your own instance of Helium services",
+-        instance_desc: "You can host your own instance of Helium services and use it in your browser instead of the pre-hosted server. If you have one, you can set it in Helium settings.",
++        instance_title: "Use your own instance of Plutonium services",
++        instance_desc: "You can host your own instance of Plutonium services and use it in your browser instead of the pre-hosted server. If you have one, you can set it in Plutonium settings.",
+     },
+     search: {
+         title: "Choose a search engine",
+@@ -60,11 +60,11 @@
+     },
+     defaultBrowser: {
+         title: "Ready to make the switch?",
+-        subtitle: "Make all links open in Helium by default.\nGonna feel just like home, but better.",
++        subtitle: "Make all links open in Plutonium by default.\nGonna feel just like home, but better.",
+         yes: "Yes",
+         no: "No",
+-        yes_desc: "Make Helium my default browser.",
+-        no_desc: "Just trying Helium for now."
++        yes_desc: "Make Plutonium my default browser.",
++        no_desc: "Just trying Plutonium for now."
+     },
+     dataImport: {
+         title: "Take your stuff with you",
+--- a/components/helium_onboarding/src/icons/HeliumLogo.svelte
++++ b/components/helium_onboarding/src/icons/HeliumLogo.svelte
+@@ -1 +1,4 @@
+-<svg width="508" height="508" viewBox="0 0 508 508" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="238" width="32" height="508" rx="16" fill="white"/><rect x="18.291" y="40.6953" width="32" height="635" rx="16" transform="rotate(-45 18.291 40.6953)" fill="white"/><rect x="467.305" y="18.0664" width="32" height="635" rx="16" transform="rotate(45 467.305 18.0664)" fill="white"/><rect x="508" y="238" width="32" height="508" rx="16" transform="rotate(90 508 238)" fill="white"/></svg>
+\ No newline at end of file
++<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
++  <circle cx="128" cy="128" r="112" fill="#FFFFFF"/>
++  <text x="128" y="170" text-anchor="middle" font-family="DejaVu Sans, Arial, sans-serif" font-size="140" fill="#3C4043">P</text>
++</svg>

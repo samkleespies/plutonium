@@ -12,11 +12,11 @@
 +++ b/chrome/browser/helium_flag_entries.h
 @@ -16,4 +16,8 @@
       "Disables TLS Encrypted Client Hello. Not recommended unless you live in an area with heavy Internet"
-      " censorship and ECH prevents websites from loading. Helium flag.",
+      " censorship and ECH prevents websites from loading. Plutonium flag.",
       kOsAll, SINGLE_VALUE_TYPE(helium::kDisableEchCommandLine)},
 +    {helium::kCanvasNoiseCommandLine,
 +     "Canvas fingerprint deception",
-+     "Enable noising pixels when the contents of a canvas are read back by a script. Bound to a browser session. Helium flag, Chromium feature.",
++     "Enable noising pixels when the contents of a canvas are read back by a script. Bound to a browser session. Plutonium flag, Chromium feature.",
 +     kOsAll, FEATURE_VALUE_TYPE(fingerprinting_protection_interventions::features::kCanvasNoise)},
  #endif  /* CHROME_BROWSER_HELIUM_FLAG_ENTRIES_H_ */
 --- a/components/fingerprinting_protection_filter/interventions/common/interventions_features.cc

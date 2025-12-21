@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Helium Mega-Optimized Build Script
+# Plutonium Mega-Optimized Build Script
 # Supports: Standard build, PGO with Chromium profiles, Custom PGO profiles
 #
 set -euo pipefail
@@ -25,7 +25,7 @@ USE_CCACHE=true
 
 show_help() {
     cat << EOF
-Helium Mega-Optimized Build Script
+Plutonium Mega-Optimized Build Script
 
 USAGE:
     $0 [OPTIONS]

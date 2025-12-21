@@ -54,9 +54,9 @@ use_icf=true
 # Text section splitting for better instruction cache locality
 use_text_section_splitting=true
 
-# Control Flow Integrity - security with minimal performance cost
-# Requires ThinLTO to be enabled
-is_cfi=true
+# Control Flow Integrity - security with a runtime cost
+# Disabled for maximum performance (trade-off: reduced exploit mitigation)
+is_cfi=false
 
 # Disable precompiled headers - slower build but potentially better codegen
 enable_precompiled_headers=false
@@ -78,8 +78,8 @@ use_avx=true
 
 # AVX2 - Available on Haswell (2013+), AMD Excavator (2015+), AMD Zen (2017+)
 # Enables 256-bit integer SIMD operations - significant performance boost
-# UNCOMMENT THE LINE BELOW if your target CPU supports AVX2:
-# use_avx2=true
+# Enabled for Ryzen 7 7800X3D (Zen 4 fully supports AVX2)
+use_avx2=true
 
 # =============================================================================
 # THORIUM-STYLE COMPILER OPTIMIZATIONS

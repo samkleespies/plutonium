@@ -1,4 +1,4 @@
-# Helium Browser - Optimized Build Configuration
+# Plutonium Browser - Optimized Build Configuration
 # Based on Chrome/Thorium performance optimizations
 # 
 # This config prioritizes performance while maintaining privacy
@@ -100,8 +100,7 @@ v8_enable_webassembly=true
 # WebAssembly SIMD optimizations (256-bit vector operations)
 v8_enable_wasm_simd256_revec=true
 
-# Cache compiled WebAssembly code for faster subsequent loads
-v8_enable_wasm_code_cache=true
+## v8_enable_wasm_code_cache was removed in Chromium 143
 
 # =============================================================================
 # RENDERING & UI OPTIMIZATIONS

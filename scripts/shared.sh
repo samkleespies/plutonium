@@ -45,8 +45,16 @@ setup_paths() {
 setup_environment() {
     setup_paths
     setup_arch
+    setup_ccache
 
     _has_pgo=false
+}
+
+setup_ccache() {
+    if command -v ccache >/dev/null 2>&1; then
+        # Stabilize paths for better cache hits across rebuilds.
+        export CCACHE_BASEDIR="$_src_dir"
+    fi
 }
 
 fetch_sources() {
@@ -133,8 +141,27 @@ helium_resources() {
     python3 "$_main_repo/utils/replace_resources.py" "$_main_repo/resources/helium_resources.txt" "$_main_repo/resources" "$_src_dir"
 }
 
+# Fix invalid GN flags that don't exist in Chromium 143
+fix_invalid_gn_flags() {
+    echo "Removing invalid GN flags from base flags.gn..."
+    # v8_enable_wasm_code_cache doesn't exist in Chromium 143
+    sed -i '/v8_enable_wasm_code_cache/d' "${_main_repo}/flags.gn"
+}
+
+# Fix Node.js ES module error (ERR_REQUIRE_ESM)
+fix_nodejs_esm() {
+    local pkg_json="${_src_dir}/ui/webui/resources/tools/package.json"
+    if [ -f "$pkg_json" ]; then
+        echo "Fixing Node.js ES module issue in webui tools..."
+        echo '{"type": "module"}' > "$pkg_json"
+    fi
+}
+
 write_gn_args() {
     mkdir -p "${_out_dir}"
+
+    # Apply GN flag fixes before merging
+    fix_invalid_gn_flags
 
     cat "${_main_repo}/flags.gn" "${_root_dir}/flags.linux.gn" | tee "${_out_dir}/args.gn"
     echo "target_cpu = \"$_build_arch\"" | tee -a "${_out_dir}/args.gn"
@@ -214,6 +241,10 @@ setup_toolchain() {
 
 gn_gen() {
     cd "${_src_dir}"
+    
+    # Fix Node.js ES module issue before gn gen
+    fix_nodejs_esm
+    
     ./tools/gn/bootstrap/bootstrap.py -o out/Default/gn --skip-generate-buildfiles
     ./out/Default/gn gen out/Default --fail-on-unused-args
 }
