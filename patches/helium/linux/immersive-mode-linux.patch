@@ -1,0 +1,25 @@
+--- a/chrome/browser/about_flags.cc
++++ b/chrome/browser/about_flags.cc
+@@ -6764,6 +6764,12 @@ const FeatureEntry kFeatureEntries[] = {
+      flag_descriptions::kImmersiveFullscreenDescription, kOsMac,
+      FEATURE_VALUE_TYPE(features::kImmersiveFullscreen)},
+ #endif  // BUILDFLAG(IS_MAC)
++#if BUILDFLAG(IS_LINUX)
++    {"enable-immersive-fullscreen-toolbar",
++     flag_descriptions::kImmersiveFullscreenName,
++     flag_descriptions::kImmersiveFullscreenDescription, kOsLinux,
++     FEATURE_VALUE_TYPE(features::kImmersiveFullscreen)},
++#endif  // BUILDFLAG(IS_LINUX)
+     {"enable-web-payments-experimental-features",
+      flag_descriptions::kWebPaymentsExperimentalFeaturesName,
+      flag_descriptions::kWebPaymentsExperimentalFeaturesDescription, kOsAll,
+@@ -13668,9 +13674,6 @@ const FeatureEntry kFeatureEntries[] = {
+
+ // Flags that either break Helium functionality or are not relevant to Helium
+ constexpr auto kExcludedFlags = base::MakeFixedFlatSet<std::string_view>({
+-  // Misc UI features
+-  "enable-immersive-fullscreen-toolbar",
+-  "windows11-mica-titlebar",
+   "omnibox-toolbelt",
+   "webium",
+   "webui-omnibox-popup",

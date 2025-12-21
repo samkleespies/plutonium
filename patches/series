@@ -12,6 +12,7 @@ helium/linux/scrolling-performance.patch
 helium/linux/disable-status-bubble.patch
 helium/linux/chrome-default-colors.patch
 helium/linux/plutonium-onboarding-branding.patch
+helium/linux/immersive-mode-linux.patch
 
 helium/linux/change-chromium-branding.patch
 helium/linux/use-default-theme.patch
