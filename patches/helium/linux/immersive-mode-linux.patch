@@ -234,47 +234,35 @@ index 60b5869921..96e487022d 100644
        "views/frame/browser_native_widget_aura_linux.h",
        "views/frame/picture_in_picture_browser_frame_view_linux.cc",
 diff --git a/chrome/browser/ui/views/tabs/tab_style_views.cc b/chrome/browser/ui/views/tabs/tab_style_views.cc
-index fe66c423ab..ed5bc0b9b1 100644
+index fe66c423ab..7481b70b4c 100644
 --- a/chrome/browser/ui/views/tabs/tab_style_views.cc
 +++ b/chrome/browser/ui/views/tabs/tab_style_views.cc
-@@ -210,8 +210,6 @@ SkPath TabStyleViewsImpl::GetPath(TabStyle::PathType path_type,
+@@ -210,6 +210,7 @@ SkPath TabStyleViewsImpl::GetPath(TabStyle::PathType path_type,
    CHECK(tab());
    const int stroke_thickness = GetStrokeThickness(flags.force_active);
  
--  const TabStyle::TabSelectionState state = GetSelectionState();
--
++  const TabStyle::TabSelectionState state = GetSelectionState();
    // We'll do the entire path calculation in aligned pixels.
    // TODO(dfried): determine if we actually want to use `stroke_thickness` as
    // the inset in this case.
-@@ -222,18 +220,14 @@ SkPath TabStyleViewsImpl::GetPath(TabStyle::PathType path_type,
+@@ -222,7 +223,7 @@ SkPath TabStyleViewsImpl::GetPath(TabStyle::PathType path_type,
    // tab width (in DIP), not our new, scaled-and-aligned bounds.
    float content_corner_radius =
        GetTopCornerRadiusForWidth(tab()->width()) * scale;
--  float extension_corner_radius = tab_style()->GetBottomCornerRadius() * scale;
-+  float extension_corner_radius = 4 * scale;
+-  float extension_corner_radius = 4 * scale;
++  float extension_corner_radius = tab_style()->GetBottomCornerRadius() * scale;
  
    const float separator_overlap = (tab_style()->GetSeparatorMargins().width() +
                                     tab_style()->GetSeparatorSize().width()) *
-                                   scale;
+@@ -230,7 +231,11 @@ SkPath TabStyleViewsImpl::GetPath(TabStyle::PathType path_type,
  
    // Selected, hover, and inactive tab fills are a detached squarcle tab.
--  if ((path_type == TabStyle::PathType::kFill &&
--       state != TabStyle::TabSelectionState::kActive) ||
--      path_type == TabStyle::PathType::kHighlight ||
--      path_type == TabStyle::PathType::kInteriorClip ||
--      path_type == TabStyle::PathType::kHitTest) {
-+  if (flags.should_paint_extension) {
-     float top_left_corner_radius = content_corner_radius;
-     float top_right_corner_radius = content_corner_radius;
-     float bottom_left_corner_radius = content_corner_radius;
-@@ -849,6 +843,7 @@ float TabStyleViewsImpl::GetHoverOpacity() const {
- }
- 
- int TabStyleViewsImpl::GetStrokeThickness(bool should_paint_as_active) const {
-+
-   std::optional<tab_groups::TabGroupId> group = tab_->group();
-   if (group.has_value() && tab_->IsActive()) {
-     return TabGroupUnderline::kStrokeThickness;
+-  if ((true)) {
++  if ((path_type == TabStyle::PathType::kFill &&
++       state != TabStyle::TabSelectionState::kActive) ||
++      path_type == TabStyle::PathType::kHighlight ||
++      path_type == TabStyle::PathType::kInteriorClip ||
++      path_type == TabStyle::PathType::kHitTest) {
 diff --git a/chrome/browser/ui/views/frame/immersive_mode_controller_linux.h b/chrome/browser/ui/views/frame/immersive_mode_controller_linux.h
 new file mode 100644
 index 0000000000..2e9fc4a866

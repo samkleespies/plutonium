@@ -133,9 +133,21 @@ Create a Firefox/Zen-browser-style auto-hiding toolbar that:
 3. Works in normal maximized mode (not just fullscreen)
 4. Animates smoothly in and out
 
-### Implementation Status: BROKEN - CRASHES ON STARTUP
+### Implementation Status: WORKING - Browser runs without crashing
 
-The current implementation causes the browser to crash on launch.
+The immersive mode is now enabled and the browser launches successfully. The toolbar auto-hide functionality is active.
+
+**Current behavior:**
+- Browser starts with toolbar visible
+- Immersive mode is enabled automatically
+- Mouse tracking is active for reveal/hide detection
+- Animation system is in place
+
+**Remaining work:**
+- Test and refine the auto-hide trigger (mouse at top edge)
+- Verify smooth animations work correctly
+- Test interaction with toolbar elements when revealed
+- Consider adding a preference to enable/disable the feature
 
 ### Files Modified on VM
 
@@ -159,6 +171,20 @@ Location: chrome/browser/ui/views/frame/immersive_mode_controller_linux.cc
 - Uses `gfx::SlideAnimation` for animations
 - Tracks mouse via `aura::Env::AddEventObserver`
 - Updates layout via `UpdateTopContainerOffset()`
+
+**Key changes to SetEnabled() for Linux:**
+```cpp
+if (enabled_) {
+  // ... event listener setup ...
+
+  // Start in 'closed' state so IsRevealed() returns false.
+  // This prevents TopContainerView::PaintChildren from triggering frame painting
+  // which causes recursion since we don't do reparenting.
+  visible_fraction_ = 1.0;
+  animation_state_ = AnimationState::kClosed;
+  // Don't call UpdateTopContainerOffset() or notify observers during init.
+}
+```
 
 #### 2. Modified Chromium Files
 
@@ -194,29 +220,42 @@ COMPONENT_EXPORT(CHROME_FEATURES) BASE_DECLARE_FEATURE(kImmersiveFullscreen);
 
 **chrome/browser/ui/views/frame/browser_view.cc**
 
-Two modifications:
-
-1. Around line 2189 - Enable immersive in `FullscreenStateChanged()`:
+One modification in `CreateOverlayView()` (around line 4391):
 ```cpp
-#if BUILDFLAG(IS_LINUX)
-  // Enable immersive mode on Linux when entering fullscreen
-  if (UsesImmersiveFullscreenMode()) {
-    ImmersiveModeController::From(browser())->SetEnabled(IsFullscreen());
-  }
-#endif
-```
-
-2. Around line 5258 - Enable immersive on window init:
-```cpp
-immersive_mode_controller->Init(this);
-immersive_mode_controller->AddObserver(this);
+views::View* BrowserView::CreateOverlayView() {
+  auto* overlay_view =
+      new TopContainerOverlayView(weak_ptr_factory_.GetWeakPtr());
+  overlay_view_tracker_.SetView(overlay_view);
+  overlay_view->SetVisible(false);
+  overlay_view->SetEventTargeter(std::make_unique<views::ViewTargeter>(
+      std::make_unique<OverlayViewTargeterDelegate>()));
 #if BUILDFLAG(IS_LINUX)
   // Enable immersive mode on Linux for normal window mode
   if (UsesImmersiveFullscreenMode()) {
-    immersive_mode_controller->SetEnabled(true);
+    ImmersiveModeController::From(browser())->SetEnabled(true);
+  }
+#endif
+  return overlay_view;
+}
+```
+
+**Important:** SetEnabled() must be called in `CreateOverlayView()`, NOT in `AddedToWidget()`.
+The overlay_view_tracker_ is only set during CreateOverlayView, and it's needed before
+SetEnabled can safely trigger observer notifications.
+
+**chrome/browser/ui/views/frame/top_container_view.cc**
+
+Modified `PaintChildren()` to skip frame painting on Linux (around line 43):
+```cpp
+// Changed from: #if !BUILDFLAG(IS_CHROMEOS)
+#if BUILDFLAG(IS_MAC)  // Linux doesn't need frame painting since we don't reparent
+  if (ImmersiveModeController::From(browser_view_->browser())->IsRevealed()) {
+    // ... frame painting code ...
   }
 #endif
 ```
+
+This prevents paint recursion on Linux where we don't reparent the top container.
 
 **chrome/browser/ui/views/frame/browser_view.h**
 ```cpp
@@ -248,41 +287,39 @@ if (is_linux) {
 #endif
 ```
 
-### Known Issues with Current Implementation
+### Fixed Issues (2025-12-22)
 
-1. **CRASH ON STARTUP** - Browser crashes immediately when launched
-   - Likely cause: `SetEnabled(true)` called too early during init
-   - `browser_view_` or other pointers may not be fully initialized
+Three crashes were identified and fixed:
 
-2. **Previous issues (before crash):**
-   - Layout was broken/messed up when toolbar revealed
-   - Couldn't interact with toolbar elements (click, type URL)
-   - Hide animation was instant instead of smooth
+1. **FIXED: SetEnabled called before overlay_view_tracker_ set**
+   - **Symptom:** Crash in `OnImmersiveFullscreenEntered()` → `ReparentTopContainerForStartOfImmersive()` → `CHECK(overlay_view_tracker_)`
+   - **Cause:** `SetEnabled(true)` was called in `AddedToWidget()` which runs BEFORE `CreateOverlayView()` sets up `overlay_view_tracker_`
+   - **Fix:** Moved `SetEnabled(true)` to `CreateOverlayView()` after overlay is set up
 
-### Debugging the Crash
+2. **FIXED: Observer notification causing unwanted reparenting**
+   - **Symptom:** Paint recursion crash after toolbar interaction
+   - **Cause:** `SetEnabled()` notified observers with `OnImmersiveFullscreenEntered()`, which called `ReparentTopContainerForStartOfImmersive()`. On Linux, we don't want reparenting.
+   - **Fix:** Removed observer notifications from `SetEnabled()` in the Linux controller
 
-To debug:
-```bash
-# Run with debugging output
-~/.local/share/plutonium-browser/chrome --enable-logging=stderr --v=1 2>&1 | head -100
+3. **FIXED: TopContainerView::PaintChildren causing paint recursion**
+   - **Symptom:** Stack overflow from recursive painting when `IsRevealed()` returned true
+   - **Cause:** `TopContainerView::PaintChildren()` paints the frame when revealed (for Mac overlay mode), but this causes recursion on Linux because we don't reparent the top container
+   - **Fix:** Changed condition from `#if !BUILDFLAG(IS_CHROMEOS)` to `#if BUILDFLAG(IS_MAC)` to skip frame painting on Linux
 
-# Or check crash dumps
-ls ~/.config/chromium/Crash\ Reports/
-```
+### Key Architectural Insight
 
-### Potential Fix Strategies
-
-1. **Delay SetEnabled call** - Don't enable immersive mode during Init, wait for first layout
-2. **Check null pointers** - `browser_view_`, `GetWidget()`, `top_container()` may be null
-3. **Disable the feature temporarily** - Comment out `SetEnabled(true)` in browser_view.cc line ~5263
-4. **Revert to fullscreen-only** - Keep `SetEnabled(IsFullscreen())` only
+**Mac/ChromeOS vs Linux immersive mode:**
+- On Mac/ChromeOS, the top container is reparented to an overlay view that floats over content
+- This requires special frame painting in `TopContainerView::PaintChildren()`
+- On Linux (Plutonium), we use offset-based sliding without reparenting
+- Therefore, Linux must skip the frame painting to avoid recursion
 
 ### To Disable Feature Temporarily
 
 On VM:
 ```bash
-# Comment out the problematic SetEnabled call
-ssh samkl@192.168.0.189 -p 2222 "sed -i 's/immersive_mode_controller->SetEnabled(true);/\/\/ immersive_mode_controller->SetEnabled(true);/' ~/plutonium/build/src/chrome/browser/ui/views/frame/browser_view.cc"
+# Comment out the SetEnabled call in CreateOverlayView
+ssh samkl@192.168.0.189 -p 2222 "sed -i 's/ImmersiveModeController::From(browser())->SetEnabled(true);/\/\/ ImmersiveModeController::From(browser())->SetEnabled(true);/' ~/plutonium/build/src/chrome/browser/ui/views/frame/browser_view.cc"
 
 # Rebuild
 ssh samkl@192.168.0.189 -p 2222 "export PATH=~/depot_tools:\$PATH && cd ~/plutonium/build/src && autoninja -C out/Default chrome"
@@ -442,7 +479,8 @@ void ImmersiveModeControllerChromeos::LayoutBrowserRootView() {
 
 | Date | Change |
 |------|--------|
-| 2025-12-22 | Created immersive mode implementation (crashes on start) |
+| 2025-12-22 | Fixed immersive mode crashes - browser now stable with auto-hide enabled |
+| 2025-12-22 | Created immersive mode implementation (initial version crashed) |
 | 2025-12-20 | Initial Plutonium build working |
 | 2025-12-18 | Project setup |
 
