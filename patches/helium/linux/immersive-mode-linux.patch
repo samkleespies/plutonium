@@ -1,6 +1,8 @@
+diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
+index 10c48dde50..99a4b0a643 100644
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -6764,6 +6764,12 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -6753,6 +6765,12 @@ const FeatureEntry kFeatureEntries[] = {
       flag_descriptions::kImmersiveFullscreenDescription, kOsMac,
       FEATURE_VALUE_TYPE(features::kImmersiveFullscreen)},
  #endif  // BUILDFLAG(IS_MAC)
@@ -13,13 +15,1430 @@
      {"enable-web-payments-experimental-features",
       flag_descriptions::kWebPaymentsExperimentalFeaturesName,
       flag_descriptions::kWebPaymentsExperimentalFeaturesDescription, kOsAll,
-@@ -13668,9 +13674,6 @@ const FeatureEntry kFeatureEntries[] = {
-
- // Flags that either break Helium functionality or are not relevant to Helium
- constexpr auto kExcludedFlags = base::MakeFixedFlatSet<std::string_view>({
--  // Misc UI features
--  "enable-immersive-fullscreen-toolbar",
--  "windows11-mica-titlebar",
-   "omnibox-toolbelt",
-   "webium",
-   "webui-omnibox-popup",
+diff --git a/chrome/common/chrome_features.cc b/chrome/common/chrome_features.cc
+index af3c7fe701..21bcd99393 100644
+--- a/chrome/common/chrome_features.cc
++++ b/chrome/common/chrome_features.cc
+@@ -1216,11 +1216,13 @@ BASE_FEATURE(kHttpsFirstModeIncognito, base::FEATURE_ENABLED_BY_DEFAULT);
+ BASE_FEATURE(kHttpsFirstModeIncognitoNewSettings,
+              base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+-#if BUILDFLAG(IS_MAC)
++#if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
+ // Enables immersive fullscreen. The tab strip and toolbar are placed underneath
+ // the titlebar. The tab strip and toolbar can auto hide and reveal.
+ BASE_FEATURE(kImmersiveFullscreen, base::FEATURE_ENABLED_BY_DEFAULT);
++#endif  // BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
+ 
++#if BUILDFLAG(IS_MAC)
+ // Enables immersive fullscreen mode for PWA windows. PWA windows will use
+ // immersive fullscreen mode if and only if both this and kImmersiveFullscreen
+ // are enabled. PWA windows currently do not use ImmersiveFullscreenTabs even if
+diff --git a/chrome/common/chrome_features.h b/chrome/common/chrome_features.h
+index f533dbdab9..4d6bbf9142 100644
+--- a/chrome/common/chrome_features.h
++++ b/chrome/common/chrome_features.h
+@@ -890,12 +890,15 @@ BASE_DECLARE_FEATURE(kHttpsFirstModeIncognito);
+ COMPONENT_EXPORT(CHROME_FEATURES)
+ BASE_DECLARE_FEATURE(kHttpsFirstModeIncognitoNewSettings);
+ 
+-#if BUILDFLAG(IS_MAC)
++#if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
+ COMPONENT_EXPORT(CHROME_FEATURES) BASE_DECLARE_FEATURE(kImmersiveFullscreen);
++#endif  // BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
++
++#if BUILDFLAG(IS_MAC)
+ COMPONENT_EXPORT(CHROME_FEATURES)
+ BASE_DECLARE_FEATURE(kImmersiveFullscreenPWAs);
+ COMPONENT_EXPORT(CHROME_FEATURES) BASE_DECLARE_FEATURE(kFullscreenAnimateTabs);
+-#endif
++#endif  // BUILDFLAG(IS_MAC)
+ 
+ #if !BUILDFLAG(IS_ANDROID)
+ COMPONENT_EXPORT(CHROME_FEATURES)
+diff --git a/chrome/browser/ui/views/frame/immersive_mode_controller_factory_views.cc b/chrome/browser/ui/views/frame/immersive_mode_controller_factory_views.cc
+index 04571385fb..298ead4357 100644
+--- a/chrome/browser/ui/views/frame/immersive_mode_controller_factory_views.cc
++++ b/chrome/browser/ui/views/frame/immersive_mode_controller_factory_views.cc
+@@ -16,6 +16,12 @@
+ #include "chrome/browser/ui/views/frame/immersive_mode_controller_mac.h"
+ #endif
+ 
++#if BUILDFLAG(IS_LINUX)
++#include "base/feature_list.h"
++#include "chrome/common/chrome_features.h"
++#include "chrome/browser/ui/views/frame/immersive_mode_controller_linux.h"
++#endif
++
+ namespace chrome {
+ 
+ std::unique_ptr<ImmersiveModeController> CreateImmersiveModeController(
+@@ -31,6 +37,12 @@ std::unique_ptr<ImmersiveModeController> CreateImmersiveModeController(
+             ->UsesImmersiveFullscreenTabbedMode());
+   }
+   return std::make_unique<ImmersiveModeControllerStub>(browser_view->browser());
++#elif BUILDFLAG(IS_LINUX)
++  if (base::FeatureList::IsEnabled(features::kImmersiveFullscreen)) {
++    return std::make_unique<ImmersiveModeControllerLinux>(
++        browser_view->browser());
++  }
++  return std::make_unique<ImmersiveModeControllerStub>(browser_view->browser());
+ #else
+   return std::make_unique<ImmersiveModeControllerStub>(browser_view->browser());
+ #endif  // BUILDFLAG(IS_CHROMEOS)
+diff --git a/chrome/browser/ui/views/frame/browser_view.h b/chrome/browser/ui/views/frame/browser_view.h
+index 03ddcbb6f8..91574609cf 100644
+--- a/chrome/browser/ui/views/frame/browser_view.h
++++ b/chrome/browser/ui/views/frame/browser_view.h
+@@ -231,7 +231,7 @@ class BrowserView : public BrowserWindow,
+-#if BUILDFLAG(IS_MAC)
++#if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
+   // Returns if this browser view will use immersive fullscreen mode, based
+   // on the state of the two relevant base::Features, as well as the type of
+   // browser this is a view for.
+   bool UsesImmersiveFullscreenMode() const;
+-#endif  // BUILDFLAG(IS_MAC)
++#endif  // BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
+ 
+ #if BUILDFLAG(IS_MAC)
+diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/views/frame/browser_view.cc
+index 7208db413a..5800da9e0c 100644
+--- a/chrome/browser/ui/views/frame/browser_view.cc
++++ b/chrome/browser/ui/views/frame/browser_view.cc
+@@ -1206,22 +1293,30 @@ std::vector<ContentsContainerView*> BrowserView::GetContentsContainerViews() {
+              : std::vector<ContentsContainerView*>{contents_container_view_};
+ }
+ 
+-#if BUILDFLAG(IS_MAC)
++#if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
+ bool BrowserView::UsesImmersiveFullscreenMode() const {
++#if BUILDFLAG(IS_MAC)
+   const bool is_pwa =
+       base::FeatureList::IsEnabled(features::kImmersiveFullscreenPWAs) &&
+       GetIsWebAppType();
+   const bool is_tabbed_window = GetSupportsTabStrip();
+   return base::FeatureList::IsEnabled(features::kImmersiveFullscreen) &&
+          (is_pwa || is_tabbed_window);
++#else
++  // Linux: enable for tabbed windows only
++  return base::FeatureList::IsEnabled(features::kImmersiveFullscreen) &&
++         GetSupportsTabStrip();
++#endif
+ }
++#endif  // BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
+ 
++#if BUILDFLAG(IS_MAC)
+ bool BrowserView::UsesImmersiveFullscreenTabbedMode() const {
+   return (GetSupportsTabStrip() &&
+           base::FeatureList::IsEnabled(features::kImmersiveFullscreen)) &&
+          !GetIsWebAppType();
+ }
+-#endif
++#endif  // BUILDFLAG(IS_MAC)
+ 
+ TabSearchBubbleHost* BrowserView::GetTabSearchBubbleHost() {
+   return tab_search_bubble_host_.get();
+@@ -2090,6 +2186,13 @@ void BrowserView::FullscreenStateChanged() {
+   ImmersiveModeController::From(browser())->SetEnabled(
+       frame_view->ShouldEnableImmersiveModeController());
+ #endif
++#if BUILDFLAG(IS_LINUX)
++  // Enable immersive mode on Linux when entering fullscreen
++  if (UsesImmersiveFullscreenMode()) {
++    ImmersiveModeController::From(browser())->SetEnabled(IsFullscreen());
++  }
++#endif  // BUILDFLAG(IS_LINUX)
++
+ 
+ #if BUILDFLAG(IS_MAC)
+   if (AppUsesWindowControlsOverlay()) {
+@@ -4291,6 +4389,12 @@ views::View* BrowserView::CreateOverlayView() {
+   overlay_view->SetVisible(false);
+   overlay_view->SetEventTargeter(std::make_unique<views::ViewTargeter>(
+       std::make_unique<OverlayViewTargeterDelegate>()));
++#if BUILDFLAG(IS_LINUX)
++  // Enable immersive mode on Linux for normal window mode
++  if (UsesImmersiveFullscreenMode()) {
++    ImmersiveModeController::From(browser())->SetEnabled(true);
++  }
++#endif
+   return overlay_view;
+ }
+ 
+diff --git a/chrome/browser/ui/views/frame/top_container_view.h b/chrome/browser/ui/views/frame/top_container_view.h
+index 0e2fdb8e0f..a5dced6f7e 100644
+--- a/chrome/browser/ui/views/frame/top_container_view.h
++++ b/chrome/browser/ui/views/frame/top_container_view.h
+@@ -27,6 +27,7 @@ class TopContainerView : public views::View {
+ 
+   // views::View overrides:
+   void PaintChildren(const views::PaintInfo& paint_info) override;
++  void OnPaintBackground(gfx::Canvas* canvas) override;
+   void ChildPreferredSizeChanged(views::View* child) override;
+ 
+  private:
+diff --git a/chrome/browser/ui/views/frame/top_container_view.cc b/chrome/browser/ui/views/frame/top_container_view.cc
+index 6287655d6b..656da345b6 100644
+--- a/chrome/browser/ui/views/frame/top_container_view.cc
++++ b/chrome/browser/ui/views/frame/top_container_view.cc
+@@ -12,6 +12,8 @@
+ #include "ui/base/metadata/metadata_impl_macros.h"
+ #include "ui/compositor/layer.h"
+ #include "ui/views/paint_info.h"
++#include "ui/color/color_provider.h"
++#include "ui/gfx/canvas.h"
+ #include "ui/views/view_class_properties.h"
+@@ -40,7 +42,7 @@ void TopContainerView::PaintChildren(const views::PaintInfo& paint_info) {
+ // BrowserRootView::PaintChildren() on immersive revealed.
+ // TODO (b/287068468): Verify if it's needed on MacOS, once it's verified, we
+ // can decide whether keep or remove this function.
+-#if !BUILDFLAG(IS_CHROMEOS)
++#if BUILDFLAG(IS_MAC)  // Linux doesn't need frame painting since we don't reparent
+   if (ImmersiveModeController::From(browser_view_->browser())->IsRevealed()) {
+     // Top-views depend on parts of the frame (themes, window title, window
+     // controls) being painted underneath them. Clip rect has already been set
+@@ -63,6 +65,22 @@ void TopContainerView::PaintChildren(const views::PaintInfo& paint_info) {
+   View::PaintChildren(paint_info);
+ }
++
++void TopContainerView::OnPaintBackground(gfx::Canvas* canvas) {
++#if BUILDFLAG(IS_LINUX)
++  if (ImmersiveModeController::From(browser_view_->browser())->IsEnabled()) {
++    // Paint the frame background color when in immersive mode on Linux
++    const ui::ColorProvider* cp = GetColorProvider();
++    if (cp) {
++      SkColor frame_color = cp->GetColor(ui::kColorFrameActive);
++      canvas->DrawColor(frame_color);
++      return;
++    }
++  }
++#endif
++  View::OnPaintBackground(canvas);
++}
+ 
+ void TopContainerView::ChildPreferredSizeChanged(views::View* child) {
+   PreferredSizeChanged();
+ }
+diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
+index 60b5869921..96e487022d 100644
+--- a/chrome/browser/ui/BUILD.gn
++++ b/chrome/browser/ui/BUILD.gn
+@@ -3349,6 +3363,8 @@ static_library("ui") {
+       "views/frame/browser_desktop_window_tree_host.h",
+       "views/frame/browser_desktop_window_tree_host_linux.cc",
+       "views/frame/browser_desktop_window_tree_host_linux.h",
++      "views/frame/immersive_mode_controller_linux.cc",
++      "views/frame/immersive_mode_controller_linux.h",
+       "views/frame/browser_native_widget_aura_linux.cc",
+       "views/frame/browser_native_widget_aura_linux.h",
+       "views/frame/picture_in_picture_browser_frame_view_linux.cc",
+diff --git a/chrome/browser/ui/views/tabs/tab_style_views.cc b/chrome/browser/ui/views/tabs/tab_style_views.cc
+index fe66c423ab..ed5bc0b9b1 100644
+--- a/chrome/browser/ui/views/tabs/tab_style_views.cc
++++ b/chrome/browser/ui/views/tabs/tab_style_views.cc
+@@ -210,8 +210,6 @@ SkPath TabStyleViewsImpl::GetPath(TabStyle::PathType path_type,
+   CHECK(tab());
+   const int stroke_thickness = GetStrokeThickness(flags.force_active);
+ 
+-  const TabStyle::TabSelectionState state = GetSelectionState();
+-
+   // We'll do the entire path calculation in aligned pixels.
+   // TODO(dfried): determine if we actually want to use `stroke_thickness` as
+   // the inset in this case.
+@@ -222,18 +220,14 @@ SkPath TabStyleViewsImpl::GetPath(TabStyle::PathType path_type,
+   // tab width (in DIP), not our new, scaled-and-aligned bounds.
+   float content_corner_radius =
+       GetTopCornerRadiusForWidth(tab()->width()) * scale;
+-  float extension_corner_radius = tab_style()->GetBottomCornerRadius() * scale;
++  float extension_corner_radius = 4 * scale;
+ 
+   const float separator_overlap = (tab_style()->GetSeparatorMargins().width() +
+                                    tab_style()->GetSeparatorSize().width()) *
+                                   scale;
+ 
+   // Selected, hover, and inactive tab fills are a detached squarcle tab.
+-  if ((path_type == TabStyle::PathType::kFill &&
+-       state != TabStyle::TabSelectionState::kActive) ||
+-      path_type == TabStyle::PathType::kHighlight ||
+-      path_type == TabStyle::PathType::kInteriorClip ||
+-      path_type == TabStyle::PathType::kHitTest) {
++  if (flags.should_paint_extension) {
+     float top_left_corner_radius = content_corner_radius;
+     float top_right_corner_radius = content_corner_radius;
+     float bottom_left_corner_radius = content_corner_radius;
+@@ -849,6 +843,7 @@ float TabStyleViewsImpl::GetHoverOpacity() const {
+ }
+ 
+ int TabStyleViewsImpl::GetStrokeThickness(bool should_paint_as_active) const {
++
+   std::optional<tab_groups::TabGroupId> group = tab_->group();
+   if (group.has_value() && tab_->IsActive()) {
+     return TabGroupUnderline::kStrokeThickness;
+diff --git a/chrome/browser/ui/views/frame/immersive_mode_controller_linux.h b/chrome/browser/ui/views/frame/immersive_mode_controller_linux.h
+new file mode 100644
+index 0000000000..2e9fc4a866
+--- /dev/null
++++ b/chrome/browser/ui/views/frame/immersive_mode_controller_linux.h
+@@ -0,0 +1,204 @@
++// Copyright 2025 The Chromium Authors and Plutonium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_UI_VIEWS_FRAME_IMMERSIVE_MODE_CONTROLLER_LINUX_H_
++#define CHROME_BROWSER_UI_VIEWS_FRAME_IMMERSIVE_MODE_CONTROLLER_LINUX_H_
++
++#include <memory>
++#include <optional>
++
++#include "base/memory/raw_ptr.h"
++#include "base/memory/weak_ptr.h"
++#include "base/timer/timer.h"
++#include "chrome/browser/ui/views/frame/immersive_mode_controller.h"
++#include "ui/events/event_observer.h"
++#include "ui/gfx/animation/animation_delegate.h"
++#include "ui/gfx/animation/slide_animation.h"
++#include "ui/gfx/geometry/point.h"
++#include "ui/views/focus/focus_manager.h"
++#include "ui/views/widget/widget_observer.h"
++
++class BrowserView;
++
++// Linux implementation of ImmersiveModeController.
++// This controller auto-hides the top toolbar and reveals it when the user
++// moves the mouse to the top edge of the screen.
++class ImmersiveModeControllerLinux
++    : public ImmersiveModeController,
++      public gfx::AnimationDelegate,
++      public ui::EventObserver,
++      public views::FocusChangeListener,
++      public views::WidgetObserver {
++ public:
++  explicit ImmersiveModeControllerLinux(BrowserWindowInterface* browser);
++  ~ImmersiveModeControllerLinux() override;
++
++  ImmersiveModeControllerLinux(const ImmersiveModeControllerLinux&) = delete;
++  ImmersiveModeControllerLinux& operator=(const ImmersiveModeControllerLinux&) =
++      delete;
++
++  // ImmersiveModeController:
++  void Init(BrowserView* browser_view) override;
++  void SetEnabled(bool enabled) override;
++  bool IsEnabled() const override;
++  bool ShouldHideTopViews() const override;
++  bool IsRevealed() const override;
++  int GetTopContainerVerticalOffset(
++      const gfx::Size& top_container_size) const override;
++  std::unique_ptr<ImmersiveRevealedLock> GetRevealedLock(
++      AnimateReveal animate_reveal) override;
++  void OnFindBarVisibleBoundsChanged(
++      const gfx::Rect& new_visible_bounds_in_screen) override;
++  bool ShouldStayImmersiveAfterExitingFullscreen() override;
++  int GetMinimumContentOffset() const override;
++  int GetExtraInfobarOffset() const override;
++  void OnContentFullscreenChanged(bool is_content_fullscreen) override;
++
++ private:
++  class RevealedLock;
++  friend class RevealedLock;
++
++  // Animation states for the toolbar.
++  enum class AnimationState {
++    kClosed,       // Toolbar is hidden
++    kSlideOpen,    // Toolbar is animating to revealed
++    kRevealed,     // Toolbar is fully visible
++    kSlideClose,   // Toolbar is animating to hidden
++  };
++
++  // gfx::AnimationDelegate:
++  void AnimationEnded(const gfx::Animation* animation) override;
++  void AnimationProgressed(const gfx::Animation* animation) override;
++
++  // ui::EventObserver:
++  void OnEvent(const ui::Event& event) override;
++
++  // views::FocusChangeListener:
++  void OnWillChangeFocus(views::View* focused_before,
++                         views::View* focused_now) override;
++  void OnDidChangeFocus(views::View* focused_before,
++                        views::View* focused_now) override;
++
++  // views::WidgetObserver:
++  void OnWidgetDestroying(views::Widget* widget) override;
++  void OnWidgetBoundsChanged(views::Widget* widget,
++                             const gfx::Rect& new_bounds) override;
++
++  // Called when the mouse position should be checked for reveal.
++  void OnMouseCheckTimer();
++  
++  // Called when startup delay is complete
++  void OnStartupDelayComplete();
++  
++  // Called to do initial layout update
++  void OnInitialLayoutTimer();
++
++  // Updates the revealed state based on mouse position and locks.
++  void UpdateRevealedState(bool animate);
++
++  // Starts or stops revealing the toolbar.
++  void StartReveal(bool animate);
++  void StartClose(bool animate);
++
++  // Called when a reveal lock is destroyed.
++  void LockDestroyed();
++
++  // Ensures the root view is ready for sliding (expanded + layer-backed).
++  void EnsureSlideLayers();
++
++  // Ensures the top container is stacked above web contents.
++  void EnsureTopContainerZOrder();
++
++  // Restores the original top container stacking.
++  void ResetTopContainerZOrder();
++
++  // Restores the root view after sliding.
++  void ResetSlideLayers();
++
++  // Updates the root view bounds for the current top container height.
++  void UpdateRootViewBoundsForSlide(int top_container_height);
++
++  // Returns the current top container height for sliding.
++  int GetTopContainerHeight() const;
++
++  // Forces a layout/paint update after reveal state changes.
++  void LayoutBrowserRootView();
++
++  // Updates the top container offset based on animation progress.
++  void UpdateTopContainerOffset();
++
++  // Applies transform to slide the browser root view.
++  void ApplyTransform();
++
++  // Returns true if the mouse is near the top edge of the screen.
++  bool IsMouseNearTopEdge() const;
++
++  // Returns true if the mouse is over a given view in screen coordinates.
++  bool IsMouseOverView(const views::View* view) const;
++
++  // Returns true if the mouse is over the top controls region.
++  bool IsMouseOverTopControls() const;
++
++  // Returns true if there are any active reveal locks.
++  bool HasRevealLocks() const { return reveal_lock_count_ > 0; }
++
++  // The browser view this controller is attached to.
++  raw_ptr<BrowserView> browser_view_ = nullptr;
++
++  // Whether immersive mode is enabled.
++  bool enabled_ = false;
++
++  // The current animation state.
++  AnimationState animation_state_ = AnimationState::kClosed;
++
++  // Animation for sliding the toolbar in/out.
++  gfx::SlideAnimation animation_;
++
++  // The fraction of the toolbar that is visible (0.0 = hidden, 1.0 = visible).
++  double visible_fraction_ = 0.0;
++
++  // True when root view layers/bounds are configured for sliding.
++  bool slide_layers_installed_ = false;
++
++  // Cached top container height for slide bounds calculations.
++  int slide_top_container_height_ = 0;
++
++  // Original index of top container within main_container.
++  std::optional<size_t> top_container_original_index_;
++
++  // Track whether we forced layers on top controls for visibility.
++  bool forced_top_container_layer_ = false;
++  bool forced_tab_strip_layer_ = false;
++
++  // Timer for periodically checking mouse position.
++  base::RepeatingTimer mouse_check_timer_;
++
++  // Number of active reveal locks.
++  int reveal_lock_count_ = 0;
++
++  // Last known mouse position.
++  gfx::Point last_mouse_position_;
++
++  // Startup delay - don't auto-hide until this is true
++  bool startup_delay_passed_ = true;
++  
++  // Timer for startup delay
++  base::OneShotTimer startup_delay_timer_;
++  
++  // Timer for initial layout update
++  base::OneShotTimer initial_layout_timer_;
++
++  // Height of the top edge region that triggers reveal.
++  static constexpr int kTopEdgeThresholdDip = 3;
++
++  // Delay before revealing the toolbar when mouse is at top edge.
++  static constexpr base::TimeDelta kRevealDelay = base::Milliseconds(200);
++
++  // Duration of the slide animation.
++  static constexpr base::TimeDelta kAnimationDuration = base::Milliseconds(200);
++
++  base::WeakPtrFactory<ImmersiveModeControllerLinux> weak_ptr_factory_{this};
++};
++
++#endif  // CHROME_BROWSER_UI_VIEWS_FRAME_IMMERSIVE_MODE_CONTROLLER_LINUX_H_
+diff --git a/chrome/browser/ui/views/frame/immersive_mode_controller_linux.cc b/chrome/browser/ui/views/frame/immersive_mode_controller_linux.cc
+new file mode 100644
+index 0000000000..8cc49de925
+--- /dev/null
++++ b/chrome/browser/ui/views/frame/immersive_mode_controller_linux.cc
+@@ -0,0 +1,952 @@
++// Copyright 2025 The Chromium Authors and Plutonium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/ui/views/frame/immersive_mode_controller_linux.h"
++
++#include <algorithm>
++#include <set>
++#include <string_view>
++#include <vector>
++
++#include "base/logging.h"
++#include "chrome/browser/ui/layout_constants.h"
++#include "chrome/browser/ui/views/frame/browser_view.h"
++#include "chrome/browser/ui/views/frame/top_container_view.h"
++#include "chrome/browser/ui/views/toolbar/toolbar_view.h"
++#include "ui/aura/env.h"
++#include "ui/aura/window.h"
++#include "ui/compositor/layer.h"
++#include "ui/compositor/scoped_layer_animation_settings.h"
++#include "ui/events/event.h"
++#include "ui/gfx/geometry/rect.h"
++#include "ui/gfx/geometry/transform.h"
++#include "ui/views/controls/native/native_view_host.h"
++#include "ui/views/view.h"
++#include "ui/views/widget/widget.h"
++
++namespace {
++
++gfx::Rect GetBoundsInBrowserView(const views::View* view,
++                                 const views::View* browser_view) {
++  if (!view || !browser_view) {
++    return gfx::Rect();
++  }
++  return views::View::ConvertRectToTarget(view, browser_view,
++                                          view->GetLocalBounds());
++}
++
++void LogViewSummary(const char* label, BrowserView* browser_view) {
++  static int log_count = 0;
++  if (!browser_view || log_count++ > 3) {
++    return;
++  }
++
++  auto log_view = [&](const char* name, const views::View* view) {
++    if (!view) {
++      LOG(WARNING) << "Immersive layout(" << label << "): " << name << " null";
++      return;
++    }
++    const gfx::Rect bounds = GetBoundsInBrowserView(view, browser_view);
++    std::string_view parent_name =
++        view->parent() ? view->parent()->GetClassName() : "null";
++    const bool drawn = view->IsDrawn();
++    const bool has_layer = view->layer() != nullptr;
++    const float opacity = has_layer ? view->layer()->opacity() : -1.0f;
++    LOG(WARNING) << "Immersive layout(" << label << "): " << name
++                 << " class=" << view->GetClassName()
++                 << " visible=" << view->GetVisible()
++                 << " drawn=" << drawn
++                 << " layer=" << has_layer
++                 << " opacity=" << opacity
++                 << " parent=" << parent_name
++                 << " bounds=" << bounds.ToString()
++                 << " pref=" << view->GetPreferredSize().ToString();
++  };
++
++  auto log_children = [&](const char* group, const views::View* parent,
++                          int max_children, int max_grandchildren) {
++    if (!parent) {
++      return;
++    }
++    int index = 0;
++    for (const auto& child : parent->children()) {
++      if (index >= max_children) {
++        LOG(WARNING) << "Immersive layout(" << label << "): " << group
++                     << " child[...] truncated";
++        break;
++      }
++      const views::View* child_view = child.get();
++      if (!child_view) {
++        ++index;
++        continue;
++      }
++      const gfx::Rect bounds = GetBoundsInBrowserView(child_view, browser_view);
++      const bool drawn = child_view->IsDrawn();
++      const bool has_layer = child_view->layer() != nullptr;
++      const float opacity = has_layer ? child_view->layer()->opacity() : -1.0f;
++      LOG(WARNING) << "Immersive layout(" << label << "): " << group
++                   << " child[" << index << "] class="
++                   << child_view->GetClassName()
++                   << " visible=" << child_view->GetVisible()
++                   << " drawn=" << drawn
++                   << " layer=" << has_layer
++                   << " opacity=" << opacity
++                   << " bounds=" << bounds.ToString()
++                   << " pref=" << child_view->GetPreferredSize().ToString();
++
++      if (max_grandchildren > 0) {
++        int sub_index = 0;
++        for (const auto& sub_child : child_view->children()) {
++          if (sub_index >= max_grandchildren) {
++            LOG(WARNING) << "Immersive layout(" << label << "): " << group
++                         << " child[" << index << "] sub[...] truncated";
++            break;
++          }
++          const views::View* sub_view = sub_child.get();
++          if (!sub_view) {
++            ++sub_index;
++            continue;
++          }
++          const gfx::Rect sub_bounds =
++              GetBoundsInBrowserView(sub_view, browser_view);
++          const bool sub_drawn = sub_view->IsDrawn();
++          const bool sub_has_layer = sub_view->layer() != nullptr;
++          const float sub_opacity =
++              sub_has_layer ? sub_view->layer()->opacity() : -1.0f;
++          LOG(WARNING) << "Immersive layout(" << label << "): " << group
++                       << " child[" << index << "] sub[" << sub_index
++                       << "] class=" << sub_view->GetClassName()
++                       << " visible=" << sub_view->GetVisible()
++                       << " drawn=" << sub_drawn
++                       << " layer=" << sub_has_layer
++                       << " opacity=" << sub_opacity
++                       << " bounds=" << sub_bounds.ToString()
++                       << " pref=" << sub_view->GetPreferredSize().ToString();
++          ++sub_index;
++        }
++      }
++      ++index;
++    }
++  };
++
++  log_view("browser_view", browser_view);
++  log_view("main_container", browser_view->main_container());
++  log_view("top_container", browser_view->top_container());
++  log_view("contents_container", browser_view->contents_container());
++  log_view("tab_strip", browser_view->tab_strip_view());
++
++  log_children("browser_view", browser_view, 10, 0);
++
++  if (auto* tab_strip_view = browser_view->tab_strip_view()) {
++    log_children("tab_strip", tab_strip_view, 10, 12);
++    for (const auto& child : tab_strip_view->children()) {
++      const views::View* child_view = child.get();
++      if (!child_view) {
++        continue;
++      }
++      if (std::string_view(child_view->GetClassName()) != "TabStrip") {
++        continue;
++      }
++      for (const auto& sub_child : child_view->children()) {
++        const views::View* sub_view = sub_child.get();
++        if (!sub_view) {
++          continue;
++        }
++        if (std::string_view(sub_view->GetClassName()) == "TabContainerImpl") {
++          log_children("tab_container", sub_view, 30, 0);
++          break;
++        }
++      }
++    }
++  }
++
++  if (auto* top_container = browser_view->top_container()) {
++    int index = 0;
++    for (const auto& child : top_container->children()) {
++      views::View* child_view = child.get();
++      if (!child_view) {
++        continue;
++      }
++      const gfx::Rect bounds = GetBoundsInBrowserView(child_view, browser_view);
++      LOG(WARNING) << "Immersive layout(" << label << "): top_container child["
++                   << index++ << "] class=" << child_view->GetClassName()
++                   << " visible=" << child_view->GetVisible()
++                   << " bounds=" << bounds.ToString()
++                   << " pref=" << child_view->GetPreferredSize().ToString();
++    }
++  }
++
++  if (auto* toolbar = browser_view->toolbar()) {
++    int index = 0;
++    for (const auto& child : toolbar->children()) {
++      views::View* child_view = child.get();
++      if (!child_view) {
++        continue;
++      }
++      const gfx::Rect bounds = GetBoundsInBrowserView(child_view, browser_view);
++      LOG(WARNING) << "Immersive layout(" << label << "): toolbar child["
++                   << index++ << "] class=" << child_view->GetClassName()
++                   << " visible=" << child_view->GetVisible()
++                   << " bounds=" << bounds.ToString()
++                   << " pref=" << child_view->GetPreferredSize().ToString();
++      int sub_index = 0;
++      for (const auto& sub_child : child_view->children()) {
++        views::View* sub_view = sub_child.get();
++        if (!sub_view) {
++          continue;
++        }
++        const gfx::Rect sub_bounds =
++            GetBoundsInBrowserView(sub_view, browser_view);
++        LOG(WARNING)
++            << "Immersive layout(" << label << "): toolbar child["
++            << index - 1 << "] sub[" << sub_index++ << "] class="
++            << sub_view->GetClassName()
++            << " visible=" << sub_view->GetVisible()
++            << " bounds=" << sub_bounds.ToString()
++            << " pref=" << sub_view->GetPreferredSize().ToString();
++      }
++    }
++  }
++}
++
++}  // namespace
++
++// The reveal lock implementation for Linux.
++class ImmersiveModeControllerLinux::RevealedLock : public ImmersiveRevealedLock {
++ public:
++  explicit RevealedLock(base::WeakPtr<ImmersiveModeControllerLinux> controller)
++      : controller_(controller) {}
++
++  ~RevealedLock() override {
++    if (controller_) {
++      controller_->LockDestroyed();
++    }
++  }
++
++ private:
++  base::WeakPtr<ImmersiveModeControllerLinux> controller_;
++};
++
++ImmersiveModeControllerLinux::ImmersiveModeControllerLinux(
++    BrowserWindowInterface* browser)
++    : ImmersiveModeController(browser), animation_(this) {
++  animation_.SetSlideDuration(kAnimationDuration);
++}
++
++ImmersiveModeControllerLinux::~ImmersiveModeControllerLinux() {
++  if (browser_view_ && browser_view_->GetWidget()) {
++    browser_view_->GetWidget()->RemoveObserver(this);
++    if (auto* focus_manager = browser_view_->GetFocusManager()) {
++      focus_manager->RemoveFocusChangeListener(this);
++    }
++  }
++  if (auto* env = aura::Env::GetInstance()) {
++    env->RemoveEventObserver(this);
++  }
++  mouse_check_timer_.Stop();
++  startup_delay_timer_.Stop();
++  initial_layout_timer_.Stop();
++}
++
++void ImmersiveModeControllerLinux::Init(BrowserView* browser_view) {
++  browser_view_ = browser_view;
++}
++
++void ImmersiveModeControllerLinux::SetEnabled(bool enabled) {
++  LOG(WARNING) << "ImmersiveModeControllerLinux::SetEnabled(" << enabled << ")";
++  if (enabled_ == enabled) {
++    return;
++  }
++
++  enabled_ = enabled;
++
++  if (enabled_) {
++    EnsureTopContainerZOrder();
++    // Start listening for events.
++    if (browser_view_ && browser_view_->GetWidget()) {
++      browser_view_->GetWidget()->AddObserver(this);
++      if (auto* focus_manager = browser_view_->GetFocusManager()) {
++        focus_manager->AddFocusChangeListener(this);
++      }
++    }
++
++    if (auto* env = aura::Env::GetInstance()) {
++      env->AddEventObserver(this, env, std::set<ui::EventType>{
++          ui::EventType::kMouseMoved,
++          ui::EventType::kMouseEntered,
++          ui::EventType::kMouseExited});
++    }
++
++    ResetSlideLayers();
++
++    // Start fully visible
++    visible_fraction_ = 1.0;
++    animation_state_ = AnimationState::kRevealed;
++    startup_delay_passed_ = false;
++    
++    LOG(WARNING) << "Immersive mode enabled, starting fully visible";
++    
++    // Delay before auto-hide kicks in
++    startup_delay_timer_.Start(FROM_HERE, base::Seconds(3),
++        base::BindOnce(&ImmersiveModeControllerLinux::OnStartupDelayComplete,
++                       weak_ptr_factory_.GetWeakPtr()));
++  } else {
++    if (browser_view_ && browser_view_->GetWidget()) {
++      browser_view_->GetWidget()->RemoveObserver(this);
++      if (auto* focus_manager = browser_view_->GetFocusManager()) {
++        focus_manager->RemoveFocusChangeListener(this);
++      }
++    }
++
++    if (auto* env = aura::Env::GetInstance()) {
++      env->RemoveEventObserver(this);
++    }
++
++    mouse_check_timer_.Stop();
++    startup_delay_timer_.Stop();
++    initial_layout_timer_.Stop();
++    animation_.Stop();
++    ResetSlideLayers();
++    ResetTopContainerZOrder();
++
++    visible_fraction_ = 1.0;
++    animation_state_ = AnimationState::kRevealed;
++    LayoutBrowserRootView();
++  }
++}
++
++bool ImmersiveModeControllerLinux::IsEnabled() const {
++  return enabled_;
++}
++
++bool ImmersiveModeControllerLinux::ShouldHideTopViews() const {
++  // Keep top views rendered; we slide them out of view via transforms.
++  return false;
++}
++
++bool ImmersiveModeControllerLinux::IsRevealed() const {
++  bool revealed = !enabled_ || 
++                  animation_state_ == AnimationState::kRevealed ||
++                  animation_state_ == AnimationState::kSlideOpen ||
++                  animation_state_ == AnimationState::kSlideClose;
++  return revealed;
++}
++
++int ImmersiveModeControllerLinux::GetTopContainerVerticalOffset(
++    const gfx::Size& top_container_size) const {
++  // We use transforms now, so always return 0 for layout purposes
++  return 0;
++}
++
++std::unique_ptr<ImmersiveRevealedLock>
++ImmersiveModeControllerLinux::GetRevealedLock(AnimateReveal animate_reveal) {
++  ++reveal_lock_count_;
++  LOG(WARNING) << "GetRevealedLock: lock_count now " << reveal_lock_count_;
++  if (animation_state_ != AnimationState::kRevealed) {
++    StartReveal(animate_reveal == AnimateReveal::ANIMATE_REVEAL_YES);
++  }
++  return std::make_unique<RevealedLock>(weak_ptr_factory_.GetWeakPtr());
++}
++
++void ImmersiveModeControllerLinux::OnFindBarVisibleBoundsChanged(
++    const gfx::Rect& new_visible_bounds_in_screen) {
++  if (!new_visible_bounds_in_screen.IsEmpty()) {
++    if (!HasRevealLocks() && animation_state_ != AnimationState::kRevealed) {
++      StartReveal(true);
++    }
++  }
++}
++
++bool ImmersiveModeControllerLinux::ShouldStayImmersiveAfterExitingFullscreen() {
++  return false;
++}
++
++int ImmersiveModeControllerLinux::GetMinimumContentOffset() const {
++  return 0;
++}
++
++int ImmersiveModeControllerLinux::GetExtraInfobarOffset() const {
++  return 0;
++}
++
++void ImmersiveModeControllerLinux::OnContentFullscreenChanged(
++    bool is_content_fullscreen) {
++}
++
++void ImmersiveModeControllerLinux::AnimationEnded(
++    const gfx::Animation* animation) {
++  LOG(WARNING) << "AnimationEnded: state was " << static_cast<int>(animation_state_);
++  if (animation_state_ == AnimationState::kSlideOpen) {
++    animation_state_ = AnimationState::kRevealed;
++    ResetSlideLayers();
++    LayoutBrowserRootView();
++    for (auto& observer : observers_) {
++      observer.OnImmersiveRevealEnded();
++    }
++  } else if (animation_state_ == AnimationState::kSlideClose) {
++    animation_state_ = AnimationState::kClosed;
++    ApplyTransform();
++  }
++}
++
++void ImmersiveModeControllerLinux::AnimationProgressed(
++    const gfx::Animation* animation) {
++  visible_fraction_ = animation_.GetCurrentValue();
++  ApplyTransform();
++}
++
++void ImmersiveModeControllerLinux::OnEvent(const ui::Event& event) {
++  if (!enabled_) {
++    return;
++  }
++
++  if (event.IsMouseEvent()) {
++    const ui::MouseEvent& mouse_event = *event.AsMouseEvent();
++    last_mouse_position_ = mouse_event.root_location();
++
++    if (!startup_delay_passed_) {
++      return;
++    }
++
++    bool over_top_controls = IsMouseOverTopControls();
++    
++    if (over_top_controls) {
++      if (!mouse_check_timer_.IsRunning() &&
++          animation_state_ == AnimationState::kClosed) {
++        LOG(WARNING) << "Mouse near top, starting reveal timer";
++        mouse_check_timer_.Start(FROM_HERE, kRevealDelay,
++            base::BindRepeating(
++                &ImmersiveModeControllerLinux::OnMouseCheckTimer,
++                weak_ptr_factory_.GetWeakPtr()));
++      }
++    } else {
++      mouse_check_timer_.Stop();
++      if (!HasRevealLocks() && animation_state_ == AnimationState::kRevealed) {
++        LOG(WARNING) << "Mouse not near top, starting close";
++        StartClose(true);
++      }
++    }
++  }
++}
++
++void ImmersiveModeControllerLinux::OnWillChangeFocus(views::View* focused_before,
++                                                      views::View* focused_now) {
++}
++
++void ImmersiveModeControllerLinux::OnDidChangeFocus(views::View* focused_before,
++                                                     views::View* focused_now) {
++  if (!enabled_) {
++    return;
++  }
++
++  if (focused_now && browser_view_) {
++    views::View* top_container = browser_view_->top_container();
++    if (top_container && top_container->Contains(focused_now)) {
++      if (animation_state_ != AnimationState::kRevealed) {
++        StartReveal(true);
++      }
++    }
++  }
++}
++
++void ImmersiveModeControllerLinux::OnWidgetDestroying(views::Widget* widget) {
++  SetEnabled(false);
++}
++
++void ImmersiveModeControllerLinux::OnWidgetBoundsChanged(
++    views::Widget* widget,
++    const gfx::Rect& new_bounds) {
++  if (!slide_layers_installed_) {
++    return;
++  }
++
++  const int top_container_height = GetTopContainerHeight();
++  if (top_container_height <= 0) {
++    return;
++  }
++
++  UpdateRootViewBoundsForSlide(top_container_height);
++  ApplyTransform();
++}
++
++void ImmersiveModeControllerLinux::OnMouseCheckTimer() {
++  if (IsMouseOverTopControls() && animation_state_ == AnimationState::kClosed) {
++    LOG(WARNING) << "Mouse check timer: revealing";
++    StartReveal(true);
++  }
++  mouse_check_timer_.Stop();
++}
++
++void ImmersiveModeControllerLinux::OnStartupDelayComplete() {
++  LOG(WARNING) << "Startup delay complete - auto-hide now enabled";
++  startup_delay_passed_ = true;
++}
++
++void ImmersiveModeControllerLinux::OnInitialLayoutTimer() {
++  LayoutBrowserRootView();
++  ApplyTransform();
++}
++
++void ImmersiveModeControllerLinux::UpdateRevealedState(bool animate) {
++  if (HasRevealLocks() || IsMouseOverTopControls()) {
++    StartReveal(animate);
++  } else {
++    StartClose(animate);
++  }
++}
++
++void ImmersiveModeControllerLinux::StartReveal(bool animate) {
++  LOG(WARNING) << "StartReveal: animate=" << animate;
++  if (animation_state_ == AnimationState::kRevealed ||
++      animation_state_ == AnimationState::kSlideOpen) {
++    return;
++  }
++
++  animation_state_ = AnimationState::kSlideOpen;
++  LayoutBrowserRootView();
++  LogViewSummary("StartReveal", browser_view_);
++
++  for (auto& observer : observers_) {
++    observer.OnImmersiveRevealStarted();
++  }
++
++  if (animate) {
++    EnsureSlideLayers();
++    animation_.Reset(visible_fraction_);
++    animation_.Show();
++  } else {
++    animation_.Reset(1.0);
++    visible_fraction_ = 1.0;
++    animation_state_ = AnimationState::kRevealed;
++    ResetSlideLayers();
++    LayoutBrowserRootView();
++  }
++}
++
++void ImmersiveModeControllerLinux::StartClose(bool animate) {
++  LOG(WARNING) << "StartClose: animate=" << animate;
++  if (animation_state_ == AnimationState::kClosed ||
++      animation_state_ == AnimationState::kSlideClose) {
++    return;
++  }
++
++  if (HasRevealLocks()) {
++    return;
++  }
++
++  animation_state_ = AnimationState::kSlideClose;
++
++  if (animate) {
++    EnsureSlideLayers();
++    animation_.Reset(visible_fraction_);
++    animation_.Hide();
++  } else {
++    animation_.Reset(0.0);
++    visible_fraction_ = 0.0;
++    animation_state_ = AnimationState::kClosed;
++    EnsureSlideLayers();
++    ApplyTransform();
++  }
++}
++
++void ImmersiveModeControllerLinux::LockDestroyed() {
++  --reveal_lock_count_;
++  if (reveal_lock_count_ == 0 && enabled_) {
++    if (!IsMouseOverTopControls()) {
++      StartClose(true);
++    }
++  }
++}
++
++void ImmersiveModeControllerLinux::EnsureSlideLayers() {
++  if (slide_layers_installed_) {
++    return;
++  }
++
++  if (!browser_view_ || !browser_view_->GetWidget() ||
++      browser_view_->GetWidget()->IsClosed()) {
++    return;
++  }
++
++  views::Widget* widget = browser_view_->GetWidget();
++  views::View* root_view = widget->GetRootView();
++  if (!root_view) {
++    return;
++  }
++
++  const int top_container_height = GetTopContainerHeight();
++  if (top_container_height <= 0) {
++    return;
++  }
++
++  root_view->SetPaintToLayer();
++  root_view->layer()->SetFillsBoundsOpaquely(false);
++
++  EnsureTopContainerZOrder();
++
++  // Ensure top controls paint to their own layers so they are visible when the
++  // root view layer is non-opaque.
++  if (auto* top_container = browser_view_->top_container()) {
++    if (!top_container->layer()) {
++      top_container->SetPaintToLayer();
++      top_container->layer()->SetFillsBoundsOpaquely(false);
++      forced_top_container_layer_ = true;
++    }
++  }
++  if (auto* tab_strip = browser_view_->tab_strip_view()) {
++    if (!tab_strip->layer()) {
++      tab_strip->SetPaintToLayer();
++      tab_strip->layer()->SetFillsBoundsOpaquely(false);
++      forced_tab_strip_layer_ = true;
++    }
++  }
++
++  widget->ReorderNativeViews();
++
++  UpdateRootViewBoundsForSlide(top_container_height);
++
++  if (ui::Layer* widget_layer = widget->GetLayer()) {
++    widget_layer->SetMasksToBounds(true);
++  }
++
++  slide_layers_installed_ = true;
++}
++
++void ImmersiveModeControllerLinux::ResetSlideLayers() {
++  if (!slide_layers_installed_) {
++    if (browser_view_) {
++      if (forced_top_container_layer_) {
++        if (auto* top_container = browser_view_->top_container()) {
++          if (top_container->layer()) {
++            top_container->DestroyLayer();
++          }
++        }
++        forced_top_container_layer_ = false;
++      }
++      if (forced_tab_strip_layer_) {
++        if (auto* tab_strip = browser_view_->tab_strip_view()) {
++          if (tab_strip->layer()) {
++            tab_strip->DestroyLayer();
++          }
++        }
++        forced_tab_strip_layer_ = false;
++      }
++    }
++    return;
++  }
++
++  if (!browser_view_ || !browser_view_->GetWidget()) {
++    slide_layers_installed_ = false;
++    slide_top_container_height_ = 0;
++    return;
++  }
++
++  views::Widget* widget = browser_view_->GetWidget();
++  views::View* root_view = widget->GetRootView();
++  if (!root_view) {
++    slide_layers_installed_ = false;
++    slide_top_container_height_ = 0;
++    return;
++  }
++
++  const gfx::Transform identity;
++  std::vector<ui::Layer*> layers;
++  if (root_view->layer()) {
++    layers.push_back(root_view->layer());
++  }
++  for (auto* native_view_host :
++       browser_view_->GetNativeViewHostsForTopControlsSlide()) {
++    if (auto* container = native_view_host->GetNativeViewContainer()) {
++      if (container->layer()) {
++        layers.push_back(container->layer());
++      }
++    }
++  }
++
++  for (auto* layer : layers) {
++    ui::ScopedLayerAnimationSettings settings(layer->GetAnimator());
++    settings.SetTransitionDuration(base::Milliseconds(0));
++    settings.SetPreemptionStrategy(
++        ui::LayerAnimator::IMMEDIATELY_SET_NEW_TARGET);
++    layer->SetTransform(identity);
++  }
++
++  if (root_view->layer()) {
++    root_view->DestroyLayer();
++  }
++
++  if (ui::Layer* widget_layer = widget->GetLayer()) {
++    widget_layer->SetMasksToBounds(false);
++    gfx::Rect root_bounds = root_view->bounds();
++    const int new_height = widget_layer->bounds().height();
++    if (root_bounds.height() != new_height) {
++      root_bounds.set_height(new_height);
++      root_view->SetBoundsRect(root_bounds);
++      widget->LayoutRootViewIfNecessary();
++    }
++  }
++
++  slide_layers_installed_ = false;
++  slide_top_container_height_ = 0;
++
++  if (forced_top_container_layer_) {
++    if (auto* top_container = browser_view_->top_container()) {
++      if (top_container->layer()) {
++        top_container->DestroyLayer();
++      }
++    }
++    forced_top_container_layer_ = false;
++  }
++  if (forced_tab_strip_layer_) {
++    if (auto* tab_strip = browser_view_->tab_strip_view()) {
++      if (tab_strip->layer()) {
++        tab_strip->DestroyLayer();
++      }
++    }
++    forced_tab_strip_layer_ = false;
++  }
++}
++
++void ImmersiveModeControllerLinux::EnsureTopContainerZOrder() {
++  if (!browser_view_) {
++    return;
++  }
++
++  views::View* main_container = browser_view_->main_container();
++  views::View* top_container = browser_view_->top_container();
++  if (!main_container || !top_container ||
++      top_container->parent() != main_container) {
++    return;
++  }
++
++  const std::optional<size_t> current_index =
++      main_container->GetIndexOf(top_container);
++  if (!current_index) {
++    return;
++  }
++  if (!top_container_original_index_) {
++    top_container_original_index_ = *current_index;
++  }
++
++  const size_t target_index = main_container->children().size() - 1;
++  if (*current_index != target_index) {
++    main_container->ReorderChildView(top_container, target_index);
++    if (auto* widget = browser_view_->GetWidget()) {
++      widget->ReorderNativeViews();
++    }
++  }
++}
++
++void ImmersiveModeControllerLinux::ResetTopContainerZOrder() {
++  if (!browser_view_ || !top_container_original_index_) {
++    return;
++  }
++
++  views::View* main_container = browser_view_->main_container();
++  views::View* top_container = browser_view_->top_container();
++  if (!main_container || !top_container ||
++      top_container->parent() != main_container) {
++    top_container_original_index_.reset();
++    return;
++  }
++
++  const size_t target_index = *top_container_original_index_;
++  if (target_index < main_container->children().size()) {
++    main_container->ReorderChildView(top_container, target_index);
++    if (auto* widget = browser_view_->GetWidget()) {
++      widget->ReorderNativeViews();
++    }
++  }
++  top_container_original_index_.reset();
++}
++
++void ImmersiveModeControllerLinux::UpdateRootViewBoundsForSlide(
++    int top_container_height) {
++  if (!browser_view_ || !browser_view_->GetWidget()) {
++    return;
++  }
++
++  views::Widget* widget = browser_view_->GetWidget();
++  views::View* root_view = widget->GetRootView();
++  ui::Layer* widget_layer = widget->GetLayer();
++  if (!root_view || !widget_layer || top_container_height <= 0) {
++    return;
++  }
++
++  gfx::Rect root_bounds = root_view->bounds();
++  const int new_height =
++      widget_layer->bounds().height() + top_container_height;
++  if (root_bounds.height() != new_height) {
++    root_bounds.set_height(new_height);
++    root_view->SetBoundsRect(root_bounds);
++    widget->LayoutRootViewIfNecessary();
++  }
++  slide_top_container_height_ = top_container_height;
++}
++
++int ImmersiveModeControllerLinux::GetTopContainerHeight() const {
++  if (!browser_view_) {
++    return 0;
++  }
++
++  views::View* top_container = browser_view_->top_container();
++  if (!top_container) {
++    return 0;
++  }
++
++  const views::View* tab_strip = browser_view_->tab_strip_view();
++  const bool include_tab_strip = browser_view_->ShouldDrawTabStrip() &&
++                                 tab_strip && tab_strip->parent() != top_container;
++
++  int max_bottom = 0;
++  auto update_bottom = [&](const views::View* view) {
++    if (!view) {
++      return;
++    }
++    const gfx::Rect bounds = views::View::ConvertRectToTarget(
++        view, browser_view_, view->GetLocalBounds());
++    if (bounds.bottom() > max_bottom) {
++      max_bottom = bounds.bottom();
++    }
++  };
++
++  update_bottom(top_container);
++  if (include_tab_strip) {
++    update_bottom(tab_strip);
++  }
++
++  int preferred_height = top_container->GetPreferredSize().height();
++  if (include_tab_strip && tab_strip) {
++    const int tab_strip_height = tab_strip->GetPreferredSize().height();
++    if (tab_strip_height > 0) {
++      preferred_height += tab_strip_height -
++                          GetLayoutConstant(TABSTRIP_TOOLBAR_OVERLAP);
++    }
++  }
++
++  if (preferred_height > 0) {
++    return max_bottom > 0 ? std::max(max_bottom, preferred_height)
++                          : preferred_height;
++  }
++
++  return max_bottom;
++}
++
++void ImmersiveModeControllerLinux::LayoutBrowserRootView() {
++  if (!browser_view_ || !browser_view_->GetWidget() ||
++      browser_view_->GetWidget()->IsClosed()) {
++    return;
++  }
++
++  browser_view_->top_container()->OnImmersiveRevealUpdated();
++  browser_view_->DeprecatedLayoutImmediately();
++  browser_view_->contents_container()->InvalidateLayout();
++}
++
++void ImmersiveModeControllerLinux::UpdateTopContainerOffset() {
++  ApplyTransform();
++}
++
++void ImmersiveModeControllerLinux::ApplyTransform() {
++  if (!browser_view_ || !browser_view_->GetWidget() ||
++      browser_view_->GetWidget()->IsClosed()) {
++    return;
++  }
++
++  const int top_container_height = GetTopContainerHeight();
++  if (top_container_height <= 0) {
++    if (!initial_layout_timer_.IsRunning()) {
++      initial_layout_timer_.Start(
++          FROM_HERE, base::Milliseconds(50),
++          base::BindOnce(&ImmersiveModeControllerLinux::OnInitialLayoutTimer,
++                         weak_ptr_factory_.GetWeakPtr()));
++    }
++    return;
++  }
++
++  EnsureSlideLayers();
++  if (!slide_layers_installed_) {
++    return;
++  }
++
++  if (slide_top_container_height_ != top_container_height) {
++    UpdateRootViewBoundsForSlide(top_container_height);
++  }
++
++  views::Widget* widget = browser_view_->GetWidget();
++  views::View* root_view = widget->GetRootView();
++  if (!root_view || !root_view->layer()) {
++    return;
++  }
++
++  const float y_translation =
++      top_container_height * (visible_fraction_ - 1.0);
++
++  LOG(WARNING) << "ApplyTransform: visible_fraction=" << visible_fraction_
++               << " height=" << top_container_height
++               << " offset=" << y_translation;
++
++  gfx::Transform transform;
++  transform.Translate(0, y_translation);
++
++  std::vector<ui::Layer*> layers = {root_view->layer()};
++  for (auto* native_view_host :
++       browser_view_->GetNativeViewHostsForTopControlsSlide()) {
++    if (auto* container = native_view_host->GetNativeViewContainer()) {
++      layers.push_back(container->layer());
++    }
++  }
++
++  for (auto* layer : layers) {
++    if (!layer) {
++      continue;
++    }
++    ui::ScopedLayerAnimationSettings settings(layer->GetAnimator());
++    settings.SetTransitionDuration(base::Milliseconds(0));
++    settings.SetPreemptionStrategy(
++        ui::LayerAnimator::IMMEDIATELY_SET_NEW_TARGET);
++    layer->SetTransform(transform);
++  }
++}
++
++bool ImmersiveModeControllerLinux::IsMouseNearTopEdge() const {
++  if (!browser_view_ || !browser_view_->GetWidget()) {
++    return false;
++  }
++
++  views::Widget* widget = browser_view_->GetWidget();
++  gfx::Rect widget_bounds = widget->GetWindowBoundsInScreen();
++
++  bool near_top = last_mouse_position_.y() >= widget_bounds.y() &&
++                  last_mouse_position_.y() <= widget_bounds.y() + kTopEdgeThresholdDip &&
++                  last_mouse_position_.x() >= widget_bounds.x() &&
++                  last_mouse_position_.x() <= widget_bounds.right();
++  
++  return near_top;
++}
++
++bool ImmersiveModeControllerLinux::IsMouseOverView(
++    const views::View* view) const {
++  if (!browser_view_ || !view || !view->GetVisible()) {
++    return false;
++  }
++  return view->GetBoundsInScreen().Contains(last_mouse_position_);
++}
++
++bool ImmersiveModeControllerLinux::IsMouseOverTopControls() const {
++  if (!browser_view_) {
++    return false;
++  }
++  if (IsMouseNearTopEdge()) {
++    return true;
++  }
++  if (IsMouseOverView(browser_view_->top_container())) {
++    return true;
++  }
++  if (browser_view_->ShouldDrawTabStrip() &&
++      IsMouseOverView(browser_view_->tab_strip_view())) {
++    return true;
++  }
++  return false;
++}
