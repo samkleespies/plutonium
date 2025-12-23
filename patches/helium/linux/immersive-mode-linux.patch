@@ -87,20 +87,21 @@ index 04571385fb..298ead4357 100644
    return std::make_unique<ImmersiveModeControllerStub>(browser_view->browser());
  #endif  // BUILDFLAG(IS_CHROMEOS)
 diff --git a/chrome/browser/ui/views/frame/browser_view.h b/chrome/browser/ui/views/frame/browser_view.h
-index 03ddcbb6f8..91574609cf 100644
+index 03ddcbb6f8..90f55d8a26 100644
 --- a/chrome/browser/ui/views/frame/browser_view.h
 +++ b/chrome/browser/ui/views/frame/browser_view.h
-@@ -231,7 +231,7 @@ class BrowserView : public BrowserWindow,
--#if BUILDFLAG(IS_MAC)
-+#if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
-   // Returns if this browser view will use immersive fullscreen mode, based
-   // on the state of the two relevant base::Features, as well as the type of
-   // browser this is a view for.
-   bool UsesImmersiveFullscreenMode() const;
--#endif  // BUILDFLAG(IS_MAC)
-+#endif  // BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
+@@ -246,6 +246,10 @@ class BrowserView : public BrowserWindow,
+   // The return value is determined based on the state of
+   // `features::kImmersiveFullscreen` as well as the type of browser.
+   bool UsesImmersiveFullscreenTabbedMode() const;
+ #endif
++
++#if BUILDFLAG(IS_LINUX)
++  bool UsesImmersiveFullscreenMode() const;
++#endif
  
- #if BUILDFLAG(IS_MAC)
+   // Container for the web contents.
+   views::View* contents_container() { return contents_container_; }
 diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/views/frame/browser_view.cc
 index 7208db413a..5800da9e0c 100644
 --- a/chrome/browser/ui/views/frame/browser_view.cc
@@ -181,7 +182,7 @@ diff --git a/chrome/browser/ui/views/frame/top_container_view.cc b/chrome/browse
 index 6287655d6b..656da345b6 100644
 --- a/chrome/browser/ui/views/frame/top_container_view.cc
 +++ b/chrome/browser/ui/views/frame/top_container_view.cc
-@@ -12,6 +12,8 @@
+@@ -12,4 +12,6 @@
  #include "ui/base/metadata/metadata_impl_macros.h"
  #include "ui/compositor/layer.h"
  #include "ui/views/paint_info.h"
