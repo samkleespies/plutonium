@@ -50,14 +50,20 @@ VBoxManage startvm "Ubuntu" --type headless
 ```bash
 # On VM
 cd ~/plutonium
-./scripts/build.sh -c --pgo
+./scripts/build.sh -c --clean
+
+# Optional: cap build parallelism to keep the Windows host responsive
+./scripts/build.sh --jobs 4 --load-average 4
 ```
 
 ### Incremental Build (after source changes)
 
 ```bash
-# On VM - MOST COMMON COMMAND
-ssh samkl@192.168.0.189 -p 2222 "export PATH=~/depot_tools:\$PATH && cd ~/plutonium/build/src && autoninja -C out/Default chrome"
+# Most common: rerun the main build driver (it skips download/patch steps via stamps)
+ssh samkl@192.168.0.189 -p 2222 "cd ~/plutonium && ./scripts/build.sh"
+
+# Or rebuild directly inside the Chromium checkout:
+ssh samkl@192.168.0.189 -p 2222 "export PATH=~/depot_tools:\$PATH && cd ~/plutonium/build/src && autoninja -C out/Default chrome -j 4 -l 4"
 ```
 
 ### Check Build Status
@@ -149,28 +155,25 @@ The immersive mode is now enabled and the browser launches successfully. The too
 - Test interaction with toolbar elements when revealed
 - Consider adding a preference to enable/disable the feature
 
-### Files Modified on VM
+### Source Of Truth (IMPORTANT)
 
-All modifications are in: `~/plutonium/build/src/chrome/browser/ui/views/frame/`
+Do not hand-edit files under `~/plutonium/build/src` and treat them as “the repo”. That directory is a generated Chromium checkout created by `./scripts/build.sh` and can be deleted/recreated.
+
+The repository’s source of truth for the Linux immersive feature is:
+
+- `patches/helium/linux/immersive-mode-linux.patch`
+
+This patch is applied into the Chromium checkout during builds.
+
+### Chromium Files Touched (via patch)
 
 #### 1. New Files Created
 
-**immersive_mode_controller_linux.h** (~135 lines)
-```
-Location: chrome/browser/ui/views/frame/immersive_mode_controller_linux.h
-```
-- Defines `ImmersiveModeControllerLinux` class
-- Inherits from: `ImmersiveModeController`, `gfx::AnimationDelegate`, `ui::EventObserver`, `views::FocusChangeListener`, `views::WidgetObserver`
-- Key constants: `kTopEdgeThresholdDip = 3`, `kRevealDelay = 200ms`, `kAnimationDuration = 200ms`
+**chrome/browser/ui/views/frame/immersive_mode_controller_linux.h**
+- Linux `ImmersiveModeController` implementation
 
-**immersive_mode_controller_linux.cc** (~329 lines)
-```
-Location: chrome/browser/ui/views/frame/immersive_mode_controller_linux.cc
-```
-- Full implementation of auto-hiding toolbar
-- Uses `gfx::SlideAnimation` for animations
-- Tracks mouse via `aura::Env::AddEventObserver`
-- Updates layout via `UpdateTopContainerOffset()`
+**chrome/browser/ui/views/frame/immersive_mode_controller_linux.cc**
+- Auto-hiding toolbar implementation (hover reveal + slide animation)
 
 **Key changes to SetEnabled() for Linux:**
 ```cpp

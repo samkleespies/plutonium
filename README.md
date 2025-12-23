@@ -82,9 +82,12 @@ ssh samkl@192.168.0.189
 ### Building
 
 ```bash
-# On VM
+# On the Ubuntu build VM
 cd ~/plutonium
-./scripts/build.sh -c --pgo
+./scripts/build.sh -c --clean
+
+# If you want to keep the Windows host responsive, cap build parallelism:
+./scripts/build.sh --jobs 4 --load-average 4
 
 # Or for optimized build
 ./scripts/build-optimized.sh --pgo-chromium
@@ -103,10 +106,14 @@ ssh samkl@192.168.0.189 -p 2222 "tail -f ~/plutonium-build.log"
 ### Incremental Rebuild
 
 ```bash
-# On VM - only rebuilds changed files
+# Most common: just rerun the main script (it skips download/patch steps via stamps)
+cd ~/plutonium
+./scripts/build.sh
+
+# Or rebuild directly inside the Chromium checkout:
 cd ~/plutonium/build/src
 export PATH=~/depot_tools:$PATH
-autoninja -C out/Default chrome
+autoninja -C out/Default chrome -j 4 -l 4
 ```
 
 ## Local Installation

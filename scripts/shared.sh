@@ -251,5 +251,21 @@ gn_gen() {
 
 build() {
     cd "${_src_dir}"
-    ninja -C out/Default chrome chromedriver
+
+    local ninja_cmd
+    if command -v autoninja >/dev/null 2>&1; then
+        ninja_cmd=autoninja
+    else
+        ninja_cmd=ninja
+    fi
+
+    local ninja_args=(-C out/Default chrome chromedriver)
+    if [ -n "${NINJA_JOBS:-}" ]; then
+        ninja_args+=(-j "${NINJA_JOBS}")
+    fi
+    if [ -n "${NINJA_LOAD:-}" ]; then
+        ninja_args+=(-l "${NINJA_LOAD}")
+    fi
+
+    "${ninja_cmd}" "${ninja_args[@]}"
 }
