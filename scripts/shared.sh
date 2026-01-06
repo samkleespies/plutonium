@@ -124,21 +124,21 @@ apply_domsub() {
     fi
 }
 
-helium_substitution() {
+plutonium_substitution() {
     python3 "$_main_repo/utils/name_substitution.py" --sub \
         -t "$_src_dir" --backup-path "$_namesubs_cache"
 }
 
-helium_version() {
-    python3 "$_main_repo/utils/helium_version.py" \
+plutonium_version() {
+    python3 "$_main_repo/utils/plutonium_version.py" \
         --tree "$_main_repo" \
         --platform-tree "$_root_dir" \
         --chromium-tree "$_src_dir"
 }
 
-helium_resources() {
+plutonium_resources() {
     python3 "$_main_repo/utils/generate_resources.py" "$_main_repo/resources/generate_resources.txt" "$_main_repo/resources"
-    python3 "$_main_repo/utils/replace_resources.py" "$_main_repo/resources/helium_resources.txt" "$_main_repo/resources" "$_src_dir"
+    python3 "$_main_repo/utils/replace_resources.py" "$_main_repo/resources/plutonium_resources.txt" "$_main_repo/resources" "$_src_dir"
 }
 
 # Fix invalid GN flags that don't exist in Chromium 143

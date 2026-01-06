@@ -36,9 +36,9 @@ fi
 fetch_sources "$clone" "$with_pgo"
 apply_patches
 apply_domsub
-helium_substitution
-helium_version
-helium_resources
+plutonium_substitution
+plutonium_version
+plutonium_resources
 write_gn_args
 fix_tool_downloading
 setup_toolchain

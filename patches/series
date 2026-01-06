@@ -5,16 +5,16 @@ ungoogled-chromium/portablelinux/fix-compiling-on-arm64.patch
 upstream-fixes/respect-middle-click-paste.patch
 
 # Plutonium: Performance optimizations (must be applied early)
-helium/linux/plutonium-optimizations.patch
-helium/linux/scrolling-performance.patch
+plutonium/linux/plutonium-optimizations.patch
+plutonium/linux/scrolling-performance.patch
 
 # Plutonium: UI customizations
-helium/linux/disable-status-bubble.patch
-helium/linux/chrome-default-colors.patch
-helium/linux/plutonium-onboarding-branding.patch
-helium/linux/immersive-mode-linux.patch
+plutonium/linux/disable-status-bubble.patch
+plutonium/linux/chrome-default-colors.patch
+plutonium/linux/plutonium-onboarding-branding.patch
+plutonium/linux/immersive-mode-linux.patch
 
-helium/linux/change-chromium-branding.patch
-helium/linux/use-default-theme.patch
-helium/linux/fix-swipe-between-pages.patch
-helium/linux/add-middle-click-paste-flag.patch
+plutonium/linux/change-chromium-branding.patch
+plutonium/linux/use-default-theme.patch
+plutonium/linux/fix-swipe-between-pages.patch
+plutonium/linux/add-middle-click-paste-flag.patch
