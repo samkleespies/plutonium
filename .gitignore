@@ -1,8 +1,53 @@
+# Build artifacts
 /build/
-/.config/
-/.gcs_entries
+/dist/
 *.tar
 *.tar.xz
+*.tar.gz
 *.AppImage
 *.AppImage.zsync
+
+# Logs
 *.log
+
+# Config
+/.config/
+/.gcs_entries
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+.eggs/
+*.egg-info/
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Claude/AI
+/.claude/
+
+# Cache
+.ruff_cache/
+.cache/
+*.cache
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp files
+*.tmp
+*.bak
+*.orig
