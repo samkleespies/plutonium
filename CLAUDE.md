@@ -55,6 +55,17 @@ autoninja -C out/Default chrome -j 12
 scp -P 2222 samkl@192.168.0.189:~/plutonium/build/src/out/Default/chrome ~/.local/share/plutonium-browser/
 ```
 
+### Incremental Rebuild (after patch changes)
+```bash
+# Copy updated patch to VM
+scp -P 2222 patches/plutonium/linux/immersive-mode-linux.patch samkl@192.168.0.189:~/plutonium/patches/plutonium/linux/
+
+# On VM: regenerate build files and rebuild
+cd ~/plutonium/build/src
+./out/Default/gn gen out/Default
+autoninja -C out/Default chrome -j 12
+```
+
 ## Immersive Mode Implementation
 
 The auto-hiding toolbar is implemented in:
@@ -62,14 +73,48 @@ The auto-hiding toolbar is implemented in:
 - `immersive_mode_controller_linux.h` - Header
 
 ### How It Works
-1. Toolbar slides up/down using layer transforms
-2. Mouse position checked via timer (`OnMouseCheckTimer`)
-3. Reveals when mouse near top edge, hides when mouse leaves
-4. Animation via `gfx::SlideAnimation`
+1. On enable, tab strip is reparented into `top_container` so everything moves together
+2. `top_container` gets a compositor layer for GPU-accelerated transforms
+3. Mouse position checked via `display::Screen::GetCursorScreenPoint()`
+4. When mouse near top edge, `StartReveal()` animates `visible_fraction_` from 0 to 1
+5. Transform applied: `transform.Translate(0, height * (visible_fraction_ - 1.0))`
+6. When mouse leaves top area, `StartClose()` animates back to hidden
+
+### Key Functions
+- `SetEnabled()` - Enables/disables immersive mode, sets up event observers
+- `ApplyTransform()` - Applies Y translation to slide toolbar
+- `EnsureSlideLayers()` - Creates compositor layer on top_container
+- `IsMouseOverTopControls()` - Checks if mouse is in reveal zone
 
 ### Known Issues
-- Wayland mouse tracking can be unreliable (works in X11/Xephyr)
-- Window buttons visibility during hide
+- Wayland mouse tracking can be unreliable (`display::Screen::GetCursorScreenPoint()` may return stale values)
+- Works reliably in X11/Xephyr
+
+## Testing Workflow
+
+**IMPORTANT**: Always test in Xephyr (X11) before having user test on native Wayland.
+
+### 1. Test in Xephyr (X11 mode)
+```bash
+# Start Xephyr
+Xephyr :2 -screen 1920x1080 &
+
+# Run browser in X11 mode
+DISPLAY=:2 ~/.local/share/plutonium-browser/chrome --ozone-platform=x11
+
+# Test: move mouse to top edge - toolbar should reveal
+# Test: move mouse away - toolbar should hide
+```
+
+### 2. Test on native Wayland
+```bash
+~/.local/share/plutonium-browser/chrome
+```
+
+### 3. Debug with logging
+```bash
+chrome --enable-logging=stderr --v=1 2>&1 | grep -i immersive
+```
 
 ## Patches Overview
 
@@ -80,28 +125,14 @@ Applied in order from `patches/series`:
 3. **UI** - `disable-status-bubble.patch`, `chrome-default-colors.patch`, `immersive-mode-linux.patch`
 4. **Branding** - `change-chromium-branding.patch`, `plutonium-onboarding-branding.patch`
 
-## Testing
-
-```bash
-# Run locally (Wayland)
-~/.local/share/plutonium-browser/chrome
-
-# Test in X11 (Xephyr)
-Xephyr :2 -screen 1920x1080 &
-DISPLAY=:2 ~/.local/share/plutonium-browser/chrome
-```
-
 ## Common Tasks
 
-### Modify a patch
-1. Edit patch file in `patches/plutonium/linux/`
-2. Rebuild on VM (patches auto-apply if `.patched.stamp` removed)
-
-### Debug immersive mode
-Check browser console or run with logging:
-```bash
-chrome --enable-logging=stderr --v=1 2>&1 | grep -i immersive
-```
+### Modify immersive mode patch
+1. Edit `patches/plutonium/linux/immersive-mode-linux.patch`
+2. Copy to VM: `scp -P 2222 patches/plutonium/linux/immersive-mode-linux.patch samkl@192.168.0.189:~/plutonium/patches/plutonium/linux/`
+3. On VM: `cd ~/plutonium/build/src && ./out/Default/gn gen out/Default && autoninja -C out/Default chrome -j 12`
+4. Copy binary: `scp -P 2222 samkl@192.168.0.189:~/plutonium/build/src/out/Default/chrome ~/.local/share/plutonium-browser/`
+5. Test in Xephyr first, then native
 
 ### Revert to previous version
 ```bash
@@ -110,4 +141,16 @@ cd ~/plutonium
 git checkout <commit-hash>
 # Remove stamps and rebuild
 rm build/src/.patched.stamp build/src/.domsub.stamp
+```
+
+### Check VM status
+```bash
+# Check if VM is running
+ssh -o ConnectTimeout=10 samkl@192.168.0.189 -p 2222 "uptime"
+
+# Start VM if needed (from Windows host)
+ssh samkl@192.168.0.189 "VBoxManage startvm Ubuntu --type headless"
+
+# Check build progress
+ssh samkl@192.168.0.189 -p 2222 "tail -5 ~/plutonium-build.log"
 ```

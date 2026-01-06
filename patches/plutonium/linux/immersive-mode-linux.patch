@@ -427,9 +427,8 @@ index 0000000000..2e9fc4a866
 +  // Original index of top container within main_container.
 +  std::optional<size_t> top_container_original_index_;
 +
-+  // Track whether we forced layers on top controls for visibility.
++  // Track whether we forced a layer on top_container for visibility.
 +  bool forced_top_container_layer_ = false;
-+  bool forced_tab_strip_layer_ = false;
 +
 +  // Timer for periodically checking mouse position.
 +  base::RepeatingTimer mouse_check_timer_;
@@ -827,8 +826,9 @@ index 0000000000..8cc49de925
 +    return;
 +  }
 +
-+  // Ensure top controls paint to their own layers so they can slide above
-+  // the web contents.
++  // Ensure top_container paints to its own layer so it can slide.
++  // After reparenting, tab_strip is inside top_container so we only need
++  // to transform top_container.
 +  if (views::View* top_container = browser_view_->top_container()) {
 +    if (!top_container->layer()) {
 +      top_container->SetPaintToLayer();
@@ -836,40 +836,25 @@ index 0000000000..8cc49de925
 +    }
 +    top_container->layer()->SetFillsBoundsOpaquely(false);
 +  }
-+  if (views::View* tab_strip = browser_view_->tab_strip_view()) {
-+    if (!tab_strip->layer()) {
-+      tab_strip->SetPaintToLayer();
-+      forced_tab_strip_layer_ = true;
-+    }
-+    tab_strip->layer()->SetFillsBoundsOpaquely(false);
-+  }
 +
 +  EnsureTopContainerZOrder();
 +
-+  widget->ReorderNativeViews();
++  if (auto* widget = browser_view_->GetWidget()) {
++    widget->ReorderNativeViews();
++  }
 +
 +  slide_layers_installed_ = true;
 +}
 +
 +void ImmersiveModeControllerLinux::ResetSlideLayers() {
 +  if (!slide_layers_installed_) {
-+    if (browser_view_) {
-+      if (forced_top_container_layer_) {
-+        if (auto* top_container = browser_view_->top_container()) {
-+          if (top_container->layer()) {
-+            top_container->DestroyLayer();
-+          }
++    if (browser_view_ && forced_top_container_layer_) {
++      if (auto* top_container = browser_view_->top_container()) {
++        if (top_container->layer()) {
++          top_container->DestroyLayer();
 +        }
-+        forced_top_container_layer_ = false;
 +      }
-+      if (forced_tab_strip_layer_) {
-+        if (auto* tab_strip = browser_view_->tab_strip_view()) {
-+          if (tab_strip->layer()) {
-+            tab_strip->DestroyLayer();
-+          }
-+        }
-+        forced_tab_strip_layer_ = false;
-+      }
++      forced_top_container_layer_ = false;
 +    }
 +    return;
 +  }
@@ -883,23 +868,14 @@ index 0000000000..8cc49de925
 +  views::Widget* widget = browser_view_->GetWidget();
 +
 +  const gfx::Transform identity;
-+  std::vector<ui::Layer*> layers;
 +  if (auto* top_container = browser_view_->top_container()) {
 +    if (top_container->layer()) {
-+      layers.push_back(top_container->layer());
++      ui::ScopedLayerAnimationSettings settings(top_container->layer()->GetAnimator());
++      settings.SetTransitionDuration(base::Milliseconds(0));
++      settings.SetPreemptionStrategy(
++          ui::LayerAnimator::IMMEDIATELY_SET_NEW_TARGET);
++      top_container->layer()->SetTransform(identity);
 +    }
-+  }
-+  if (auto* tab_strip = browser_view_->tab_strip_view()) {
-+    if (tab_strip->layer()) {
-+      layers.push_back(tab_strip->layer());
-+    }
-+  }
-+  for (auto* layer : layers) {
-+    ui::ScopedLayerAnimationSettings settings(layer->GetAnimator());
-+    settings.SetTransitionDuration(base::Milliseconds(0));
-+    settings.SetPreemptionStrategy(
-+        ui::LayerAnimator::IMMEDIATELY_SET_NEW_TARGET);
-+    layer->SetTransform(identity);
 +  }
 +
 +  if (forced_top_container_layer_) {
@@ -909,14 +885,6 @@ index 0000000000..8cc49de925
 +      }
 +    }
 +    forced_top_container_layer_ = false;
-+  }
-+  if (forced_tab_strip_layer_) {
-+    if (auto* tab_strip = browser_view_->tab_strip_view()) {
-+      if (tab_strip->layer()) {
-+        tab_strip->DestroyLayer();
-+      }
-+    }
-+    forced_tab_strip_layer_ = false;
 +  }
 +  slide_layers_installed_ = false;
 +  slide_top_container_height_ = 0;
@@ -1091,26 +1059,15 @@ index 0000000000..8cc49de925
 +  gfx::Transform transform;
 +  transform.Translate(0, y_translation);
 +
-+  std::vector<ui::Layer*> layers;
++  // Only transform top_container - after reparenting, tab_strip is inside it
 +  if (auto* top_container = browser_view_->top_container()) {
 +    if (top_container->layer()) {
-+      layers.push_back(top_container->layer());
++      ui::ScopedLayerAnimationSettings settings(top_container->layer()->GetAnimator());
++      settings.SetTransitionDuration(base::Milliseconds(0));
++      settings.SetPreemptionStrategy(
++          ui::LayerAnimator::IMMEDIATELY_SET_NEW_TARGET);
++      top_container->layer()->SetTransform(transform);
 +    }
-+  }
-+  if (auto* tab_strip = browser_view_->tab_strip_view()) {
-+    if (tab_strip->layer()) {
-+      layers.push_back(tab_strip->layer());
-+    }
-+  }
-+  for (auto* layer : layers) {
-+    if (!layer) {
-+      continue;
-+    }
-+    ui::ScopedLayerAnimationSettings settings(layer->GetAnimator());
-+    settings.SetTransitionDuration(base::Milliseconds(0));
-+    settings.SetPreemptionStrategy(
-+        ui::LayerAnimator::IMMEDIATELY_SET_NEW_TARGET);
-+    layer->SetTransform(transform);
 +  }
 +}
 +
@@ -1178,12 +1135,8 @@ diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/v
 index a41f8c7b39..a41f8c7b39 100644
 --- a/chrome/browser/ui/views/frame/browser_view.cc
 +++ b/chrome/browser/ui/views/frame/browser_view.cc
-@@ -4142,6 +4142,10 @@ void BrowserView::ReparentTopContainerForStartOfImmersive() {
-   LOG(WARNING) << "ReparentTopContainerForStartOfImmersive called";
-+#if BUILDFLAG(IS_LINUX)
-+  // Linux immersive uses layer transforms; keep the normal hierarchy.
-+  return;
-+#endif  // BUILDFLAG(IS_LINUX)
+@@ -4142,6 +4142,7 @@ void BrowserView::ReparentTopContainerForStartOfImmersive() {
++  // Reparent tab strip into top_container so everything slides together
    top_container()->SetPaintToLayer();
 @@ -4185,7 +4185,8 @@ void BrowserView::ReparentTopContainerForEndOfImmersive() {
 -  if (tab_strip_region_insertion_index_) {
