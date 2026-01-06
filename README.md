@@ -1,73 +1,45 @@
 # Plutonium Browser
 
-A performance-optimized Chromium-based browser for Linux with auto-hiding toolbar and privacy enhancements.
+A personal browser project born out of wanting the best of both worlds: the privacy and clean aesthetics of [Helium](https://github.com/nicholasmhughes/nicholasmhughes.github.io) (an ungoogled-chromium fork I really liked), combined with the raw speed and smoothness you get from Chrome Dev.
 
-## Features
+I also wanted that immersive, distraction-free browsing experience - think Firefox/Zen-style auto-hiding toolbar that gets out of your way until you need it.
 
-- **Immersive Mode**: Firefox/Zen-style auto-hiding toolbar that reveals on hover
-- **Performance Optimizations**: Compiler and runtime optimizations for speed
-- **Privacy Focused**: Based on ungoogled-chromium with additional privacy patches
-- **Clean UI**: Minimal interface with status bubble disabled and refined colors
+## What This Is
+
+- **Based on Helium** - All the privacy features and nice UI I liked from Helium
+- **Performance tuned** - Compiler optimizations and tweaks to match Chrome Dev's snappiness
+- **Immersive mode** - Auto-hiding toolbar that reveals on hover (work in progress on Wayland)
+- **Linux focused** - Built and tested on Linux
 
 ## Building
 
-### Prerequisites
-
-- Ubuntu/Debian-based system (or VM)
-- ~50GB disk space
-- 16GB+ RAM recommended
-
-### Build Steps
+Building requires a beefy machine (or VM). I use an Ubuntu VM with 15 cores and 28GB RAM.
 
 ```bash
-# Clone the repository
-git clone --recurse-submodules https://github.com/user/plutonium.git
+# Clone with submodules
+git clone --recurse-submodules https://github.com/samkleespies/plutonium.git
 cd plutonium
 
-# Set up build environment
+# Set up dependencies
 ./scripts/setup-build-env.sh
 
-# Build (use -j flag to control parallelism)
+# Build
 ./scripts/build.sh
 ```
 
-The built binary will be at `build/src/out/Default/chrome`.
-
-### Packaging
-
-```bash
-./scripts/package.sh
-```
-
-Creates an AppImage in the `dist/` directory.
+Binary ends up at `build/src/out/Default/chrome`.
 
 ## Project Structure
 
 ```
 plutonium/
-├── helium-chromium/     # Upstream Helium submodule (ungoogled-chromium fork)
-├── patches/
-│   ├── plutonium/linux/ # Plutonium-specific patches
-│   ├── ungoogled-chromium/
-│   └── upstream-fixes/
-├── scripts/             # Build and packaging scripts
-├── package/             # AppImage packaging files
-└── flags.linux.gn       # Build configuration flags
+├── helium-chromium/           # Upstream Helium submodule
+├── patches/plutonium/linux/   # My patches
+├── scripts/                   # Build scripts
+├── package/                   # AppImage stuff
+└── flags.linux.gn             # Build flags
 ```
-
-## Patches
-
-| Patch | Description |
-|-------|-------------|
-| `immersive-mode-linux.patch` | Auto-hiding toolbar with hover reveal |
-| `plutonium-optimizations.patch` | Compiler optimizations for performance |
-| `scrolling-performance.patch` | Smoother scrolling |
-| `chrome-default-colors.patch` | Custom color scheme |
-| `disable-status-bubble.patch` | Remove URL preview bubble |
-| `change-chromium-branding.patch` | Plutonium branding |
 
 ## License
 
-GPL-3.0 - See [LICENSE](LICENSE)
-
-Based on [Chromium](https://www.chromium.org/), [ungoogled-chromium](https://github.com/ungoogled-software/ungoogled-chromium), and [Helium](https://github.com/nicholasmhughes/nicholasmhughes.github.io).
+GPL-3.0
