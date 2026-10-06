@@ -1,10 +1,9 @@
-# Based on Python package versions in Debian bookworm
-# https://packages.debian.org/bookworm/python/
+# Python tooling with patched test and network dependencies
 astroid==2.14.2 # via pylint
 pylint==2.16.2
 pytest-cov==4.0.0
-pytest==7.2.1
-httplib2==0.20.4
-requests==2.28.1
-pillow==11.3.0
+pytest==9.0.3
+httplib2==0.32.0
+requests==2.33.0
+pillow==12.3.0
 yapf==0.32.0
